@@ -37,7 +37,7 @@ Satu program hanya menargetkan **satu tipe teman**:
 
 1. Satu halaman Referral Hub adaptif — template tetap, isi card mengikuti program aktif.
 2. Hero general di semua kondisi — mengajak pakai Qita tanpa menyebut reward.
-3. Hanya section card yang berubah — tanpa card (tidak ada program) hingga 4 card (semua program aktif).
+3. **Hanya section program reward yang berubah** — tanpa card (tidak ada program) hingga 4 card (semua program aktif).
 4. Referrer membaca di halaman referral: reward (referrer & referee), periode selesai, kuota, dan **tipe user** — yaitu tipe teman mana yang eligible untuk program di card tersebut (contoh: "Teman yang belum punya rekening BRI" untuk program NTB).
 5. Satu program = satu tipe teman = satu card. Tidak ada multi-reward dalam satu card.
 
@@ -59,27 +59,29 @@ Satu program hanya menargetkan **satu tipe teman**:
 
 1. Kode referral selalu tampil — tidak pernah disembunyikan meski tidak ada program reward.
 2. Hero general di semua kondisi — headline & subheadline sama, tanpa menyebut reward, periode, atau segmen program.
-3. Hanya tampilkan card untuk program aktif — tiap tipe punya card sendiri; tidak aktif = tidak ada card.
-4. Saat tidak ada program aktif: tidak ada card. Ganti dengan teks singkat — belum ada reward, tetapi kode referral tetap bisa dibagikan.
-5. Satu kode, satu tombol share — user tidak perlu memilih segmen sebelum share.
-6. Bahasa manusia — gunakan label tipe teman di card, bukan istilah internal.
-7. Nominal reward hanya di card program — tidak di hero, share copy, atau banner.
-8. Periode selesai & kuota hanya di card program — tidak di hero.
-9. Tanpa program aktif = tanpa janji nominal di hero & share copy.
+3. **Kode referral + CTA statis di semua kondisi** — tampilan dan label tombol share sama, baik ada maupun tidak ada program aktif.
+4. Hanya tampilkan card untuk program aktif — tiap tipe punya card sendiri; tidak aktif = tidak ada card.
+5. Saat tidak ada program aktif: tidak ada card. Ganti dengan teks singkat — belum ada reward, tetapi kode referral tetap bisa dibagikan.
+6. Satu kode, satu tombol share — user tidak perlu memilih segmen sebelum share.
+7. Bahasa manusia — gunakan label tipe teman di card, bukan istilah internal.
+8. Nominal reward hanya di card program — tidak di hero, share copy, atau banner.
+9. Periode selesai & kuota hanya di card program — tidak di hero.
+10. Tanpa program aktif = tanpa janji nominal di hero & share copy.
 
 **Aturan penempatan konten**
 
-| Informasi | Hero | Card Program | Teks Tanpa Program | Share Copy |
-|---|---|---|---|---|
-| Nominal reward | ❌ | ✅ | ❌ | ❌ |
-| Periode selesai | ❌ | ✅ | ❌ | ❌ |
-| Kuota ajakan | ❌ | ✅ | ❌ | ❌ |
-| Tipe user (siapa yang bisa diajak) | ❌ | ✅ | ❌ | ❌ |
-| Kriteria teman | ❌ | ✅ | ❌ | ❌ |
-| Belum ada reward / tetap bisa share | ❌ | ❌ | ✅ | ❌ |
-| Kode referral | ✅ | — | — | ✅ |
+| Informasi | Hero | Kode + CTA | Card Program | Teks Tanpa Program | Share Copy |
+|---|---|---|---|---|---|
+| Nominal reward | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Periode selesai | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Kuota ajakan | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Tipe user (siapa yang bisa diajak) | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Kriteria teman | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Status program | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Belum ada reward / tetap bisa share | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Kode referral | ✅ | ✅ | — | — | ✅ |
 
-Yang berubah antar kondisi hanya section program — hero tetap sama.
+Yang berubah antar kondisi **hanya section program reward** — hero, kode referral, CTA, dan cara kerja tetap sama.
 
 **Hero**
 
@@ -88,14 +90,13 @@ Yang berubah antar kondisi hanya section program — hero tetap sama.
 | Headline | "Ajak temanmu pakai Qita" |
 | Subheadline | "Bagikan kode referralmu dan ajak temanmu bergabung" |
 
-**Kode referral + CTA**
+**Kode referral + CTA (statis — semua kondisi)**
 
-| Kondisi | Label tombol |
+| Elemen | Copy / perilaku |
 |---|---|
-| Ada program reward aktif | Bagikan Sekarang |
-| Tidak ada program aktif | Bagikan ke Teman |
-
-Share copy (tanpa nominal): *"Coba Qita, aplikasi banking BRI yang praktis. Pakai kode {kode} saat daftar."*
+| Kode referral | Selalu tampil dengan tombol Salin |
+| Label tombol | **Bagikan Sekarang** |
+| Share copy | *"Coba Qita, aplikasi banking BRI yang praktis. Pakai kode {kode} saat daftar."* |
 
 **Card program aktif**
 
@@ -108,6 +109,7 @@ Satu program = satu card. Field dinamis per card:
 | Periode selesai | Berlaku s.d. 31 Agustus 2026 |
 | Kuota | Kuota: 12/200 ajakan |
 | Tipe user | Label tipe teman yang eligible |
+| Status program | Lihat tabel di bawah |
 
 Mapping tipe user per program:
 
@@ -118,14 +120,20 @@ Mapping tipe user per program:
 | ETB BerBRImo | Teman pengguna BRImo | Sudah punya rekening BRI/BRImo · Belum pernah pakai Qita |
 | ETB X NTB | Teman yang pernah punya rekening BRI dan daftar ulang | Pernah punya rekening BRI (dormant) · Daftar ulang melalui Qita |
 
+**Status program** ditampilkan di bagian card program (bukan bottom sheet terpisah):
+
+| Kondisi | Contoh copy status |
+|---|---|
+| Kuota hampir habis | Reward program tinggal sedikit |
+| Kuota habis | Reward program telah habis |
+| Periode lewat | Program telah kadaluarsa |
+
 **Tidak ada program aktif**
 
 Tidak ada card. Hanya teks:
 
 > Belum ada program reward saat ini.
 > Kamu tetap bisa mengajak teman ke Qita — kode referral kamu tetap berlaku.
-
-Opsional: tombol "Beri tahu saya saat ada program reward".
 
 **Kombinasi tampilan**
 
@@ -138,10 +146,24 @@ Opsional: tombol "Beri tahu saya saat ada program reward".
 
 **Komponen pendukung**
 
-- **Cara kerja** — 3 langkah (ada program) / 2 langkah (tanpa program)
-- **Tracker** — riwayat ajakan, total reward, status per teman
-- **Bottom sheet** — program baru / program berakhir / reward cair
-- **Entry points** (tanpa nominal) — banner homepage, post-transaksi, menu profil
+**Cara kerja (statis — semua kondisi program)**
+
+Step-step general untuk membagikan kode referral, tidak berubah meski program aktif berbeda:
+
+1. Salin atau bagikan kode referralmu ke teman
+2. Ajak teman daftar di Qita menggunakan kodemu
+3. Cek status ajakan di riwayat
+
+**Riwayat**
+
+Riwayat ajakan milik referrer. Setiap entri menampilkan **nama referee** dan **step progress** sesuai misi program yang diikuti referee tersebut.
+
+| Jenis program | Step progress |
+|---|---|
+| Ada misi setoran | ① Berhasil daftar → ② Berhasil setoran → ③ Reward dikasih |
+| Tanpa misi setoran | ① Berhasil daftar → ② Reward dikasih |
+
+Step yang sudah selesai ditandai selesai; step berikutnya menunjukkan status progres referee saat ini.
 
 ---
 
@@ -159,10 +181,10 @@ Opsional: tombol "Beri tahu saya saat ada program reward".
 │  temanmu bergabung                      │
 │                                         │
 │  ┌─────────────────────────────────┐    │
-│  │  QITA-ABC123          [Salin]   │    │
+│  │  QITA-ABC123          [Salin]   │    │  ← statis
 │  └─────────────────────────────────┘    │
 │  ┌─────────────────────────────────┐    │
-│  │      Bagikan Sekarang           │    │
+│  │      Bagikan Sekarang           │    │  ← statis
 │  └─────────────────────────────────┘    │
 │                                         │
 │  Program Reward                         │
@@ -179,8 +201,12 @@ Opsional: tombol "Beri tahu saya saat ada program reward".
 │  │ ✓ Belum pernah pakai BRImo/Qita │    │
 │  └─────────────────────────────────┘    │
 │                                         │
-│  Cara kerjanya                          │
-│  Status ajakanmu                        │
+│  Cara kerjanya                          │  ← statis
+│  1. Salin atau bagikan kode ke teman    │
+│  2. Ajak teman daftar pakai kodemu      │
+│  3. Cek status ajakan di riwayat        │
+│                                         │
+│  Riwayat →                              │
 │  Pelajari Syarat & Ketentuan →          │
 └─────────────────────────────────────────┘
 ```
@@ -190,7 +216,7 @@ Opsional: tombol "Beri tahu saya saat ada program reward".
 ```
 ┌─────────────────────────────────────────┐
 │  Ajak temanmu pakai Qita                │
-│  [Kode + Bagikan Sekarang]              │
+│  [Kode + Bagikan Sekarang]              │  ← statis
 │                                         │
 │  Program Reward                         │
 │  ┌─ NTB ─────────────────────────┐     │
@@ -217,6 +243,26 @@ Opsional: tombol "Beri tahu saya saat ada program reward".
 └─────────────────────────────────────────┘
 ```
 
+**Status program di card**
+
+```
+┌─────────────────────────────────────────┐
+│  Ajak Teman Baru di BRI                 │
+│  Kamu Rp25.000 · Teman Rp10.000           │
+│  Kuota: 198/200 ajakan                  │
+│  ⚠ Reward program tinggal sedikit         │  ← status
+├─────────────────────────────────────────┤
+│  Ajak Pengguna BRI                      │
+│  Kamu Rp15.000 · Teman Rp5.000            │
+│  Kuota: 200/200 ajakan                  │
+│  ✕ Reward program telah habis           │  ← status
+├─────────────────────────────────────────┤
+│  Ajak Pengguna BRImo                    │
+│  Berlaku s.d. 30 Juni 2026              │
+│  ⏱ Program telah kadaluarsa              │  ← status
+└─────────────────────────────────────────┘
+```
+
 **Tidak ada program aktif**
 
 ```
@@ -229,10 +275,10 @@ Opsional: tombol "Beri tahu saya saat ada program reward".
 │  temanmu bergabung                      │
 │                                         │
 │  ┌─────────────────────────────────┐    │
-│  │  QITA-ABC123          [Salin]   │    │
+│  │  QITA-ABC123          [Salin]   │    │  ← statis
 │  └─────────────────────────────────┘    │
 │  ┌─────────────────────────────────┐    │
-│  │      Bagikan ke Teman           │    │
+│  │      Bagikan Sekarang           │    │  ← statis
 │  └─────────────────────────────────┘    │
 │                                         │
 │  Program Reward                         │
@@ -242,29 +288,54 @@ Opsional: tombol "Beri tahu saya saat ada program reward".
 │  Qita — kode referral kamu tetap        │
 │  berlaku.                               │
 │                                         │
-│  🔔 Beri tahu saya saat ada program     │
-│     reward                              │
+│  Cara kerjanya                          │  ← statis
+│  1. Salin atau bagikan kode ke teman    │
+│  2. Ajak teman daftar pakai kodemu      │
+│  3. Cek status ajakan di riwayat        │
 │                                         │
-│  Cara kerjanya (2 langkah)              │
-│  Status ajakanmu                        │
+│  Riwayat →                              │
 │  Pelajari Syarat & Ketentuan →          │
 └─────────────────────────────────────────┘
 ```
 
-**Tracker**
+**Riwayat — program dengan misi setoran (3 step)**
 
 ```
 ┌─────────────────────────────────────────┐
-│  Total reward kamu: Rp75.000            │
-│  Kamu sudah mengajak 12/200             │
+│  ←  Riwayat Ajakan                      │
 ├─────────────────────────────────────────┤
 │  👤 Budi                                │
-│  Sudah gabung, tinggal transaksi pertama│  [Ingatkan]
+│  Program: Ajak Teman Baru di BRI        │
+│                                         │
+│  ● Berhasil daftar          ✓           │
+│  ○ Berhasil setoran         ← saat ini  │
+│  ○ Reward dikasih                       │
 ├─────────────────────────────────────────┤
-│  👤 Siti · Rp25.000 · 2 Jul 2026       │
-│  Program Ajak Teman Baru                │
+│  👤 Siti                                │
+│  Program: Ajak Teman Baru di BRI        │
+│                                         │
+│  ● Berhasil daftar          ✓           │
+│  ● Berhasil setoran         ✓           │
+│  ● Reward dikasih           ✓  Rp25.000 │
+└─────────────────────────────────────────┘
+```
+
+**Riwayat — program tanpa misi setoran (2 step)**
+
+```
+┌─────────────────────────────────────────┐
+│  ←  Riwayat Ajakan                      │
 ├─────────────────────────────────────────┤
 │  👤 Andi                                │
-│  Tidak memenuhi kriteria program        │
+│  Program: Ajak Pengguna BRI             │
+│                                         │
+│  ● Berhasil daftar          ✓           │
+│  ○ Reward dikasih           ← saat ini  │
+├─────────────────────────────────────────┤
+│  👤 Rina                                │
+│  Program: Ajak Pengguna BRImo         │
+│                                         │
+│  ● Berhasil daftar          ✓           │
+│  ● Reward dikasih           ✓  Rp20.000 │
 └─────────────────────────────────────────┘
 ```
