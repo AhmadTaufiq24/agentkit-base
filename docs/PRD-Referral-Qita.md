@@ -5,7 +5,7 @@
 | **Dokumen** | Product Requirements Document (PRD) |
 | **Fitur** | Referral Hub Qita |
 | **Audiens dokumen** | UI/UX Designer, Frontend, Backend |
-| **Status** | Draft v1.11 |
+| **Status** | Draft v1.12 |
 | **Product Owner** | Tim Product Qita |
 | **Tanggal** | Juli 2026 |
 
@@ -22,6 +22,7 @@
 | v1.9 | Card program: hanya map kuota, reward, periode selesai dari API; sisanya hardcode |
 | v1.10 | Satu program = satu `user_type`; NTB & ETB = program terpisah |
 | v1.11 | Tiga tipe referee (NTB, ETB CIF, ETB BerBRImo); unik per `user_type`; maks 3 card |
+| v1.12 | Tambah `ETB_X_NTB` sebagai tipe ke-4; maks 4 program/card aktif |
 
 ---
 
@@ -51,11 +52,11 @@ Referrer (tipe apapun)  →  share kode  →  Referee daftar
                                                   │
                         ┌─────────────────────────┼─────────────────────────┐
                         ▼                         ▼                         ▼
-                  Referee NTB               Referee ETB CIF         Referee ETB BerBRImo
-                  + program NTB aktif       + program ETB_CIF aktif + program ETB_BERBRIMO aktif
-                        │                         │                         │
-                        ▼                         ▼                         ▼
-                  Reward NTB                  Reward ETB CIF            Reward ETB BerBRImo
+                  Referee NTB               Referee ETB CIF         Referee ETB BerBRImo      Referee ETB X NTB
+                  + program NTB aktif       + program ETB_CIF aktif + program ETB_BERBRIMO    + program ETB_X_NTB aktif
+                        │                         │                         │                         │
+                        ▼                         ▼                         ▼                         ▼
+                  Reward NTB                  Reward ETB CIF            Reward ETB BerBRImo       Reward ETB X NTB
                   (referrer + referee)        (referrer + referee)      (referrer + referee)
 
                   Tidak ada program aktif dengan user_type cocok → Tanpa reward (attribution saja)
@@ -64,7 +65,7 @@ Referrer (tipe apapun)  →  share kode  →  Referee daftar
 | Pihak | Dicek tipe user? | Keterangan |
 |---|---|---|
 | **Referrer** | **Tidak** | Siapa pun tipe user-nya (NTB, ETB, ETB BerBRImo) bisa share dan dapat reward selama temannya memenuhi syarat program aktif |
-| **Referee** | **Ya** | Tipe user referee (**NTB**, **ETB CIF**, **ETB BerBRImo**) menentukan program mana yang apply |
+| **Referee** | **Ya** | Tipe user referee (**NTB**, **ETB CIF**, **ETB BerBRImo**, **ETB X NTB**) menentukan program mana yang apply |
 
 ### Konfigurasi Program di Procash
 
@@ -73,9 +74,9 @@ Referrer (tipe apapun)  →  share kode  →  Referee daftar
 | Aturan | Keterangan |
 |---|---|
 | 1 program = 1 `user_type` | Saat buat program, pilih **satu** tipe user referee saja |
-| 3 tipe user referee | `NTB`, `ETB_CIF`, `ETB_BERBRIMO` — masing-masing program terpisah |
+| 4 tipe user referee | `NTB`, `ETB_CIF`, `ETB_BERBRIMO`, `ETB_X_NTB` — masing-masing program terpisah |
 | Unik per tipe | **Tidak boleh** ada 2 program aktif dengan `user_type` yang sama |
-| Maks aktif bersamaan | Paling banyak **3 program aktif** — satu per tipe user |
+| Maks aktif bersamaan | Paling banyak **4 program aktif** — satu per tipe user |
 
 Contoh konfigurasi:
 
@@ -84,37 +85,37 @@ Contoh konfigurasi:
 | Program A — NTB Q3 2026 | NTB | Rp25.000 | Rp10.000 |
 | Program B — ETB CIF Q3 2026 | ETB_CIF | Rp15.000 | Rp5.000 |
 | Program C — ETB BerBRImo Q3 2026 | ETB_BERBRIMO | Rp20.000 | Rp8.000 |
+| Program D — ETB X NTB Q3 2026 | ETB_X_NTB | Rp18.000 | Rp7.000 |
 
-> Ingin reward untuk ETB CIF? Buat Program B. Ingin reward ETB BerBRImo juga? Buat **Program C terpisah** — bukan menambah tipe ke Program A atau B.
-> Program B dan C **boleh aktif bersamaan** karena `user_type`-nya berbeda.
+> Setiap tipe user = program terpisah. Program D khusus untuk teman **dormant yang daftar ulang** — bukan digabung ke Program A (NTB).
 
-**Implikasi UI:** setiap program aktif = **satu card**. Jumlah card = jumlah program aktif (0–3). Card menampilkan kuota, reward, dan periode selesai dari API; copy lainnya **hardcode** per `user_type`.
+**Implikasi UI:** setiap program aktif = **satu card**. Jumlah card = jumlah program aktif (0–4). Card menampilkan kuota, reward, dan periode selesai dari API; copy lainnya **hardcode** per `user_type`.
 
 ### Tipe User Referee (konteks internal — **tidak boleh muncul sebagai istilah di UI**)
 
-Sistem mengenali **tepat 3 tipe user referee**. Satu program hanya boleh menargetkan **satu** tipe di bawah ini:
+Sistem mengenali **tepat 4 tipe user referee**. Satu program hanya boleh menargetkan **satu** tipe di bawah ini:
 
 | `user_type` | Definisi | Deteksi saat onboarding |
 |---|---|---|
 | `NTB` | Belum punya rekening BRI sama sekali | NIK tidak punya CIF |
 | `ETB_CIF` | Sudah punya rekening BRI, belum punya BRImo | NIK punya CIF, belum BRImo |
 | `ETB_BERBRIMO` | Sudah punya rekening BRI dan BRImo | NIK punya CIF + BRImo |
-| `ETB_X_NTB` | User dormant yang mendaftar kembali sebagai NTB | Kebijakan backend — bukan tipe program |
+| `ETB_X_NTB` | Pernah punya rekening BRI (dormant), daftar ulang sebagai user baru | NIK punya riwayat CIF dormant + flow daftar ulang NTB |
 
 ### Matriks Tampilan Referral Hub
 
-UI menyesuaikan jumlah card dari `active_programs[]` (**0–3 card program**). Hero selalu sama.
+UI menyesuaikan jumlah card dari `active_programs[]` (**0–4 card program**). Hero selalu sama.
 
 | Program aktif | Jumlah card | Contoh |
 |---|---|---|
 | Tidak ada | 1 card info | State `no_reward` |
-| 1 tipe | 1 card program | Hanya NTB, atau hanya ETB CIF, dll. |
-| 2 tipe | 2 card program | NTB + ETB CIF |
-| 3 tipe | 3 card program | NTB + ETB CIF + ETB BerBRImo |
+| 1 tipe | 1 card program | Hanya NTB, atau hanya ETB X NTB, dll. |
+| 2–3 tipe | 2–3 card program | NTB + ETB CIF, dll. |
+| 4 tipe | 4 card program | NTB + ETB CIF + ETB BerBRImo + ETB X NTB |
 
-**Urutan render card (fixed):** NTB → ETB_CIF → ETB_BERBRIMO.
+**Urutan render card (fixed):** NTB → ETB_CIF → ETB_BERBRIMO → ETB_X_NTB.
 
-`ui_mode`: `no_reward` (0 program) atau `reward_active` (1–3 program). Client render card dari `active_programs[]` — tidak perlu app release saat kombinasi program berubah.
+`ui_mode`: `no_reward` (0 program) atau `reward_active` (1–4 program). Client render card dari `active_programs[]` — tidak perlu app release saat kombinasi program berubah.
 
 Semua referrer melihat UI yang **sama** untuk program yang sama. Tidak ada pengecekan tipe user referrer.
 
@@ -130,7 +131,7 @@ Semua referrer melihat UI yang **sama** untuk program yang sama. Tidak ada penge
 
 1. Satu Referral Hub adaptif: satu template, konten dinamis dari config Procash.
 2. Hero **tetap general** di semua state — mengajak pakai Qita tanpa menyebut reward.
-3. **Hanya card program yang berubah** sesuai program aktif: 0 card program (ganti card info), 1–3 card.
+3. **Hanya card program yang berubah** sesuai program aktif: 0 card program (ganti card info), 1–4 card.
 4. Referrer membaca reward, periode selesai, dan kuota **dari API**; kriteria dan copy card lainnya **hardcode** per `user_type`.
 5. **Satu program = satu `user_type`.** Tidak boleh 2 program aktif dengan `user_type` sama.
 
@@ -144,9 +145,9 @@ Semua referrer melihat UI yang **sama** untuk program yang sama. Tidak ada penge
 6. **Bahasa manusia, bukan istilah internal.** Gunakan label hardcode per `user_type` — bukan NTB/ETB/CIF di UI.
 7. **Reward referrer & referee hanya di card program aktif** — di-map dari API. Hero, subheadline, dan share copy **tidak boleh** menyebut nominal reward.
 8. **Periode selesai & kuota hanya di card program aktif** — di-map dari API. Judul, kriteria, label **hardcode** per `user_type`.
-9. **Satu program = satu `user_type`.** Tidak boleh 2 program aktif dengan `user_type` yang sama. Maks 3 program aktif (NTB, ETB CIF, ETB BerBRImo).
+9. **Satu program = satu `user_type`.** Tidak boleh 2 program aktif dengan `user_type` yang sama. Maks 4 program aktif (NTB, ETB CIF, ETB BerBRImo, ETB X NTB).
 10. **Tanpa reward di halaman referral = tanpa janji nominal** di hero & share copy. Onboarding referee tetap menampilkan janji reward setelah tipe terdeteksi.
-11. **Tidak ada layout shift antar state.** Template hub tetap; yang berubah hanya jumlah card (0–3).
+11. **Tidak ada layout shift antar state.** Template hub tetap; yang berubah hanya jumlah card (0–4).
 12. **Jangan pernah menampilkan nominal dari cache lama.** Fallback ke `no_reward` jika config gagal.
 
 ## 5. Arsitektur Konten (Server-Driven)
@@ -236,6 +237,26 @@ Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_acti
         "max_per_referrer": 200,
         "used_by_referrer": 5
       }
+    },
+    {
+      "program_id": "ETB_X_NTB_2026_Q3",
+      "user_type": "ETB_X_NTB",
+      "period_end": {
+        "end_date": "2026-08-31",
+        "display": "Berlaku s.d. 31 Agustus 2026"
+      },
+      "referrer_reward": {
+        "amount": 18000,
+        "display": "Rp18.000"
+      },
+      "referee_reward": {
+        "amount": 7000,
+        "display": "Rp7.000"
+      },
+      "quota": {
+        "max_per_referrer": 100,
+        "used_by_referrer": 3
+      }
     }
   ],
 
@@ -282,13 +303,13 @@ Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_acti
 **Contoh response saat hanya NTB aktif** — `active_programs` berisi **1 item** (NTB saja), tanpa objek ETB.
 
 **Catatan field wajib:**
-- `active_programs[]` hanya berisi program dengan `is_active: true` di Procash (**0–3 item**).
+- `active_programs[]` hanya berisi program dengan `is_active: true` di Procash (**0–4 item**).
 - **Setiap `user_type` unik** dalam array — tidak boleh duplikat (Procash menolak 2 program aktif dengan `user_type` sama).
-- **Satu program = satu `user_type`.** Nilai yang valid: `NTB`, `ETB_CIF`, `ETB_BERBRIMO`.
+- **Satu program = satu `user_type`.** Nilai yang valid: `NTB`, `ETB_CIF`, `ETB_BERBRIMO`, `ETB_X_NTB`.
 - Per item program, **field dinamis untuk card** hanya: `period_end`, `referrer_reward`, `referee_reward`, `quota`.
 - `user_type` dipakai client untuk **lookup copy hardcode** dan urutan render card.
-- `ui_mode`: `no_reward` (array kosong) atau `reward_active` (1–3 program).
-- Client render **1 card per item** di `active_programs[]`, urut: NTB → ETB_CIF → ETB_BERBRIMO.
+- `ui_mode`: `no_reward` (array kosong) atau `reward_active` (1–4 program).
+- Client render **1 card per item** di `active_programs[]`, urut: NTB → ETB_CIF → ETB_BERBRIMO → ETB_X_NTB.
 
 ### 5.3 Logic `ui_mode` (dihitung backend)
 
@@ -304,13 +325,13 @@ function validateActivePrograms(programs) {
   if (new Set(types).size !== types.length) {
     throw new Error("Duplicate user_type in active programs");
   }
-  if (types.some(t => !["NTB", "ETB_CIF", "ETB_BERBRIMO"].includes(t))) {
+  if (types.some(t => !["NTB", "ETB_CIF", "ETB_BERBRIMO", "ETB_X_NTB"].includes(t))) {
     throw new Error("Invalid user_type");
   }
 }
 ```
 
-**Catatan:** Program tidak aktif **tidak dikirim** ke client. `active_programs[]` paling banyak **3 item** — satu per `user_type`. Procash **tidak boleh** mengaktifkan 2 program dengan `user_type` yang sama.
+**Catatan:** Program tidak aktif **tidak dikirim** ke client. `active_programs[]` paling banyak **4 item** — satu per `user_type`. Procash **tidak boleh** mengaktifkan 2 program dengan `user_type` yang sama.
 
 ### 5.4 Mapping UI Component ↔ API Field
 
@@ -325,12 +346,12 @@ function validateActivePrograms(programs) {
 
 #### Section Program Reward (Card)
 
-**Hanya render card untuk program aktif.** Jumlah card = `active_programs.length` (0–3).
+**Hanya render card untuk program aktif.** Jumlah card = `active_programs.length` (0–4).
 
 | Kondisi | Yang ditampilkan |
 |---|---|
 | `active_programs.length === 0` | **1 card informasi** (hardcode client) |
-| `active_programs.length === 1–3` | **1 card per program**, urut NTB → ETB_CIF → ETB_BERBRIMO |
+| `active_programs.length === 1–4` | **1 card per program**, urut NTB → ETB_CIF → ETB_BERBRIMO → ETB_X_NTB |
 
 #### Card Program Aktif
 
@@ -350,6 +371,7 @@ function validateActivePrograms(programs) {
 | `NTB` | Ajak Teman Baru di BRI | Teman yang belum punya rekening BRI | Belum punya rekening BRI; Belum pernah pakai BRImo/Qita |
 | `ETB_CIF` | Ajak Pengguna BRI | Teman punya rekening BRI (belum BRImo) | Sudah punya rekening BRI; Belum pernah pakai Qita |
 | `ETB_BERBRIMO` | Ajak Pengguna BRImo | Teman pengguna BRImo | Sudah punya rekening BRI/BRImo; Belum pernah pakai Qita |
+| `ETB_X_NTB` | Ajak Teman Kembali | Teman yang pernah punya rekening BRI dan daftar ulang | Pernah punya rekening BRI (dormant); Daftar ulang melalui Qita |
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -383,7 +405,7 @@ Digunakan **hanya** saat `active_programs[]` kosong. Bukan card NTB/ETB. **Selur
 
 | `ui_mode` | Jumlah card di section |
 |---|---|
-| `reward_active` | 1–3 card program (sesuai `active_programs.length`) |
+| `reward_active` | 1–4 card program (sesuai `active_programs.length`) |
 | `no_reward` | 1 card informasi (hardcode) |
 
 #### Cara Kerja — Langkah 3
@@ -395,6 +417,7 @@ Digunakan **hanya** saat `active_programs[]` kosong. Bukan card NTB/ETB. **Selur
 | `NTB` | "Teman buka rekening & lakukan setoran/transaksi pertama" |
 | `ETB_CIF` | "Teman aktivasi Qita dengan rekening BRI yang sudah ada & transaksi pertama" |
 | `ETB_BERBRIMO` | "Teman aktivasi Qita dengan akun BRImo yang sudah ada & transaksi pertama" |
+| `ETB_X_NTB` | "Teman yang daftar ulang selesaikan aktivasi & transaksi pertama" |
 | `no_reward` | Langkah 3 **tidak di-render** (hanya 2 langkah) |
 
 #### Share Copy
@@ -500,7 +523,7 @@ Hero **tidak berubah** — tidak menjadi sumber informasi program/reward.
 │  └─────────────────────────────────┘    │
 │                                         │
 │  Program Reward                         │  Section header
-│  [1–3 card program / 1 card info]       │  ← jumlah card = active_programs.length
+│  [1–4 card program / 1 card info]       │  ← jumlah card = active_programs.length
 │                                         │
 │  Cara kerjanya                          │
 │  [Step 1] [Step 2] [Step 3 opsional]    │
@@ -590,8 +613,7 @@ Kode **selalu tampil** di semua state. Tap [Salin] → toast "Kode berhasil disa
 | `NTB` | Ajak Teman Baru di BRI | Teman yang belum punya rekening BRI | Belum punya rekening BRI; Belum pernah pakai BRImo/Qita |
 | `ETB_CIF` | Ajak Pengguna BRI | Teman punya rekening BRI (belum BRImo) | Sudah punya rekening BRI; Belum pernah pakai Qita |
 | `ETB_BERBRIMO` | Ajak Pengguna BRImo | Teman pengguna BRImo | Sudah punya rekening BRI/BRImo; Belum pernah pakai Qita |
-
-**Contoh card ETB (`user_type: ETB_CIF`):**
+| `ETB_X_NTB` | Ajak Teman Kembali | Teman yang pernah punya rekening BRI dan daftar ulang | Pernah punya rekening BRI (dormant); Daftar ulang melalui Qita |
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -607,7 +629,7 @@ Kode **selalu tampil** di semua state. Tap [Salin] → toast "Kode berhasil disa
 └─────────────────────────────────────────────┘
 ```
 
-> Program ETB BerBRImo (`user_type: ETB_BERBRIMO`) adalah **program terpisah** dari ETB CIF — masing-masing punya card sendiri jika keduanya aktif.
+> Program ETB BerBRImo dan ETB X NTB masing-masing **program terpisah** — punya card sendiri jika aktif.
 
 ### 6.7 Komponen: Card Informasi (Tidak Ada Program)
 
@@ -639,10 +661,12 @@ Kode **selalu tampil** di semua state. Tap [Salin] → toast "Kode berhasil disa
 | `[NTB]` | 1× Card NTB |
 | `[ETB_CIF]` | 1× Card ETB CIF |
 | `[ETB_BERBRIMO]` | 1× Card ETB BerBRImo |
+| `[ETB_X_NTB]` | 1× Card ETB X NTB |
 | `[NTB, ETB_CIF]` | 2× Card (NTB + ETB CIF) |
-| `[NTB, ETB_CIF, ETB_BERBRIMO]` | 3× Card (semua tipe) |
+| `[NTB, ETB_CIF, ETB_BERBRIMO]` | 3× Card |
+| `[NTB, ETB_CIF, ETB_BERBRIMO, ETB_X_NTB]` | 4× Card (semua tipe) |
 
-Program tidak aktif **tidak ditampilkan**. Urutan card tetap: NTB → ETB_CIF → ETB_BERBRIMO.
+Program tidak aktif **tidak ditampilkan**. Urutan card tetap: NTB → ETB_CIF → ETB_BERBRIMO → ETB_X_NTB.
 
 ### 6.9 Wireframe — Contoh: Hanya NTB Aktif
 
@@ -692,9 +716,9 @@ Program tidak aktif **tidak ditampilkan**. Urutan card tetap: NTB → ETB_CIF �
 └─────────────────────────────────────────┘
 ```
 
-### 6.10 Wireframe — Contoh: Ketiga Program Aktif
+### 6.10 Wireframe — Contoh: Empat Program Aktif
 
-> Hero **sama**. **3 card** — satu per `user_type`.
+> Hero **sama**. **4 card** — satu per `user_type`.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -717,10 +741,13 @@ Program tidak aktif **tidak ditampilkan**. Urutan card tetap: NTB → ETB_CIF �
 │  ┌─ Card ETB BerBRImo ───────────┐    │
 │  │ Ajak Pengguna BRImo    [Aktif] │    │
 │  │ Kamu Rp20.000 · Teman Rp8.000   │    │
-│  │ Kuota: 5/200                     │    │
+│  └─────────────────────────────────┘    │
+│  ┌─ Card ETB X NTB ─────────────┐    │
+│  │ Ajak Teman Kembali     [Aktif] │    │
+│  │ Kamu Rp18.000 · Teman Rp7.000   │    │
 │  └─────────────────────────────────┘    │
 │                                         │
-│  Cara kerjanya — 3 bullet (satu/tipe)   │
+│  Cara kerjanya — 4 bullet (satu/tipe)   │
 └─────────────────────────────────────────┘
 ```
 
@@ -855,7 +882,7 @@ Setelah NIK → deteksi tipe referee:
 
 | State | Perlakuan |
 |---|---|
-| Loading | Skeleton: hero + kode + 1–3 card slot (sesuai `active_programs.length` terakhir); tanpa layout shift |
+| Loading | Skeleton: hero + kode + 1–4 card slot (sesuai `active_programs.length` terakhir); tanpa layout shift |
 | Config gagal | Fallback `no_reward` — **tidak pernah** tampilkan nominal dari cache |
 
 ---
@@ -875,14 +902,14 @@ Contoh: hanya Program A (NTB) aktif.
 | Card lain | **Tidak ditampilkan** | — |
 | Cara kerja langkah 3 | 1 bullet hardcode sesuai `user_type` | Hardcode |
 
-### Skenario — Beberapa program aktif (`reward_active`, 2–3 card)
+### Skenario — Beberapa program aktif (`reward_active`, 2–4 card)
 
-Contoh: Program A (NTB) + Program B (ETB_CIF) + Program C (ETB_BERBRIMO) semua aktif.
+Contoh: keempat program (NTB, ETB_CIF, ETB_BERBRIMO, ETB_X_NTB) aktif.
 
 | Elemen | Konten | Sumber |
 |---|---|---|
 | Headline / Subheadline | General | Hardcode |
-| Cards | 1 card per program, urut NTB → ETB_CIF → ETB_BERBRIMO | Hardcode + API |
+| Cards | 1 card per program, urut NTB → ETB_CIF → ETB_BERBRIMO → ETB_X_NTB | Hardcode + API |
 | Cara kerja langkah 3 | 1 bullet per `user_type` aktif | Hardcode |
 | Larangan | Tidak ada pemilihan segmen sebelum share | — |
 
@@ -919,12 +946,13 @@ Cara kerja menggunakan **template tetap** dengan slot dinamis di langkah 3. Tida
    NTB: "Buka rekening & lakukan setoran/transaksi pertama"
    ETB_CIF: "Aktivasi Qita dengan rekening BRI & transaksi pertama"
    ETB_BERBRIMO: "Aktivasi Qita dengan akun BRImo & transaksi pertama"
+   ETB_X_NTB: "Teman yang daftar ulang selesaikan aktivasi & transaksi pertama"
    (satu bullet per user_type di active_programs[])
    Reward cair maks. 2×24 jam.
 ```
 
 - **1 program aktif:** satu bullet di langkah 3.
-- **2–3 program aktif:** satu bullet per `user_type`, urut NTB → ETB_CIF → ETB_BERBRIMO.
+- **2–4 program aktif:** satu bullet per `user_type`, urut NTB → ETB_CIF → ETB_BERBRIMO → ETB_X_NTB.
 
 ### Saat tidak ada program aktif (2 langkah)
 
@@ -1035,7 +1063,7 @@ Riwayat lintas program dipertahankan selamanya (dengan label program).
 ## 12. Sisi Referee (Teman yang Diundang)
 
 1. Deep link membawa kode referral ke onboarding. Kode **selalu diterima**.
-2. Setelah referee input NIK, backend deteksi `user_type` (NTB / ETB_CIF / ETB_BERBRIMO).
+2. Setelah referee input NIK, backend deteksi `user_type` (NTB / ETB_CIF / ETB_BERBRIMO / ETB_X_NTB).
 3. **Janji reward hanya ditampilkan jika:**
    - Ada program aktif dengan **`user_type` yang sama persis** dengan tipe referee terdeteksi
    - Response `matched_program` tidak null
@@ -1047,10 +1075,11 @@ Riwayat lintas program dipertahankan selamanya (dengan label program).
 ```
 Referee input NIK → Backend deteksi status perbankan
        │
-       ├── Tidak ada CIF           → user_type = "NTB"
-       ├── Ada CIF, belum BRImo    → user_type = "ETB_CIF"
-       ├── Ada CIF + BRImo         → user_type = "ETB_BERBRIMO"
-       └── Dormant re-register     → kebijakan backend (ETB_X_NTB)
+       ├── Tidak ada CIF              → user_type = "NTB"
+       ├── Ada CIF, belum BRImo         → user_type = "ETB_CIF"
+       ├── Ada CIF + BRImo              → user_type = "ETB_BERBRIMO"
+       └── Riwayat CIF dormant +        → user_type = "ETB_X_NTB"
+           daftar ulang flow NTB
        │
        ▼
 Ada program aktif dengan user_type yang sama?
@@ -1087,10 +1116,10 @@ Ada program aktif dengan user_type yang sama?
 |---|---|
 | Procash coba aktifkan 2 program dengan `user_type` sama | **Ditolak** di Procash — hanya satu yang boleh aktif per tipe |
 | Referee ETB BerBRImo masuk saat hanya program ETB_CIF aktif | `matched_program: null`; tracker: "tidak memenuhi kriteria program" |
-| NTB + ETB CIF + ETB BerBRImo semua aktif | 3 card di Referral Hub — urut NTB → ETB_CIF → ETB_BERBRIMO |
-| Referee NTB masuk saat hanya program ETB_CIF/ETB_BERBRIMO aktif | `matched_program: null`; tracker: "tidak memenuhi kriteria program" |
+| NTB + ETB CIF + ETB BerBRImo + ETB X NTB semua aktif | 4 card di Referral Hub — urut NTB → ETB_CIF → ETB_BERBRIMO → ETB_X_NTB |
+| Referee NTB masuk saat hanya program ETB_CIF/ETB_BERBRIMO/ETB_X_NTB aktif | `matched_program: null`; tracker: "tidak memenuhi kriteria program" |
+| Referee ETB X NTB masuk saat hanya program NTB aktif | `matched_program: null` — tipe berbeda |
 | Referrer share saat reward aktif, referee daftar setelah program berakhir | Lock-in terms jika dalam grace period Procash; jika tidak, tracker: tanpa reward |
-| ETB X NTB (dormant daftar ulang) | Kebijakan backend/S&K; UI: "tidak memenuhi kriteria program" |
 | Kuota program habis | Kode tetap aktif; info di card program terkait; share tanpa janji nominal |
 | Program berakhir saat teman di tengah funnel | Honor terms saat registrasi (lock-in) |
 | Config berubah saat user di page | Refresh saat re-focus |
@@ -1114,7 +1143,7 @@ Ada program aktif dengan user_type yang sama?
 
 > **Acuan utama desain: Section 6 — Spesifikasi UI Lengkap**
 
-1. High-fidelity design Referral Hub untuk kombinasi 0–3 card program + wireframe Section 6.9–6.12.
+1. High-fidelity design Referral Hub untuk kombinasi 0–4 card program + wireframe Section 6.9–6.12.
 2. Komponen card program aktif (Section 6.6) — spec field dinamis vs hardcode — dan card informasi (Section 6.7).
 3. Komponen hero, kode, CTA, cara kerja, tracker, bottom sheet (Section 6.4–6.5, 6.13–6.15).
 4. Flow referee onboarding (Section 6.17).
@@ -1125,7 +1154,7 @@ Ada program aktif dengan user_type yang sama?
 ## 18. Open Questions
 
 1. Nominal & syarat kualifikasi final **per tipe user** per program (menunggu konfigurasi Procash).
-2. Kebijakan final eligibility ETB_X_NTB (dihitung NTB atau tidak) — menentukan deteksi `user_type`.
+2. Kriteria deteksi `ETB_X_NTB` di backend (flag dormant + flow daftar ulang) — sinkronkan dengan tim core banking.
 3. Apakah reward cair otomatis atau perlu klaim manual? (Rekomendasi: otomatis.)
 4. Batas kuota per referrer per periode dan per program.
 5. Channel share: native share sheet vs shortcut khusus (WhatsApp-first?).
