@@ -5,7 +5,7 @@
 | **Dokumen** | Product Requirements Document (PRD) |
 | **Fitur** | Referral Hub Qita |
 | **Audiens dokumen** | UI/UX Designer, Frontend, Backend |
-| **Status** | Draft v1.8 |
+| **Status** | Draft v1.9 |
 | **Product Owner** | Tim Product Qita |
 | **Tanggal** | Juli 2026 |
 
@@ -19,6 +19,7 @@
 | v1.6 | Masa berlaku hanya di card; copy card tidak aktif |
 | v1.7 | Spesifikasi UI lengkap (Section 6) |
 | v1.8 | Hero general tanpa reward; card hanya program aktif; satu card info saat tidak ada program |
+| v1.9 | Card program: hanya map kuota, reward, periode selesai dari API; sisanya hardcode |
 
 ---
 
@@ -73,7 +74,7 @@ Contoh konfigurasi:
 | ETB Q3 2026 | ETB (CIF) | Rp15.000 | Rp5.000 |
 | ETB Q3 2026 | ETB BerBRImo | Rp20.000 | Rp8.000 |
 
-**Implikasi UI:** untuk setiap program yang **aktif**, halaman referral menampilkan reward per tipe user **hanya di card program** — bukan di hero, share copy, atau entry point.
+**Implikasi UI:** untuk setiap program yang **aktif**, card program menampilkan **kuota, nominal reward referrer & referee, dan periode selesai** dari API. Judul card, kriteria teman, label tipe user, dan copy lainnya **hardcode di client** berdasarkan `referee_type`.
 
 ### Segmen Program (Referee Type)
 
@@ -117,7 +118,7 @@ Semua referrer melihat UI yang **sama** untuk program yang sama. Tidak ada penge
 1. Satu Referral Hub adaptif: satu template, konten dinamis dari config Procash.
 2. Hero **tetap general** di semua state — mengajak pakai Qita tanpa menyebut reward.
 3. **Hanya card program yang berubah** sesuai program aktif: 0 card program (ganti card info), 1 card, atau 2 card.
-4. Referrer membaca reward, periode, dan kriteria **hanya dari card program aktif**.
+4. Referrer membaca reward, periode selesai, dan kuota **dari API**; kriteria dan copy card lainnya **hardcode** per `referee_type`.
 
 ## 4. Prinsip Desain (wajib dipegang designer)
 
@@ -127,10 +128,10 @@ Semua referrer melihat UI yang **sama** untuk program yang sama. Tidak ada penge
 4. **Saat tidak ada program aktif:** tampilkan **satu card informasi** (bukan card NTB/ETB) yang menjelaskan belum ada reward dan kode tetap bisa dibagikan.
 5. **Satu kode, satu tombol share.** Jangan pernah meminta user memilih segmen sebelum share.
 6. **Bahasa manusia, bukan istilah internal.** NTB → "teman yang belum punya rekening BRI"; ETB → "teman yang sudah punya rekening BRI atau BRImo".
-7. **Reward referrer & referee hanya di card program aktif.** Hero, subheadline, dan share copy **tidak boleh** menyebut nominal reward.
-8. **Masa berlaku hanya di card program aktif** — per program, independen jika ada 2 program.
+7. **Reward referrer & referee hanya di card program aktif** — di-map dari API. Hero, subheadline, dan share copy **tidak boleh** menyebut nominal reward.
+8. **Periode selesai & kuota hanya di card program aktif** — di-map dari API. Judul card, kriteria, label tipe user, dan badge **hardcode** di client berdasarkan `referee_type`.
 9. **Tanpa reward di halaman referral = tanpa janji nominal** di hero & share copy. Onboarding referee tetap menampilkan janji reward setelah tipe terdeteksi.
-10. **Tidak ada layout shift antar state.** Template hub tetap; yang berubah hanya jumlah & isi card.
+10. **Tidak ada layout shift antar state.** Template hub tetap; yang berubah hanya jumlah & isi dinamis card.
 11. **Jangan pernah menampilkan nominal dari cache lama.** Fallback ke `no_reward` jika config gagal.
 
 ## 5. Arsitektur Konten (Server-Driven)
@@ -139,13 +140,14 @@ Semua referrer melihat UI yang **sama** untuk program yang sama. Tidak ada penge
 
 Procash meng-expose config program aktif. Client me-render UI berdasarkan `ui_mode` yang **dihitung di backend** — client tidak mengevaluasi eligibility sendiri.
 
-Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_active: true`**. Client tidak me-render card untuk program tidak aktif.
+Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_active: true`**. Di dalam card program, client **hanya bind field dinamis** (kuota, reward, periode selesai); copy dan struktur card lainnya **hardcode** berdasarkan `referee_type`.
 
-| Konten UI | Sumber API |
+| Konten UI | Sumber |
 |---|---|
-| Card program (reward, periode, kriteria) | `active_programs[]` — 0, 1, atau 2 item |
-| Card info tidak ada program | `no_program_card` — hanya saat `active_programs[]` kosong |
-| Hero headline & subheadline | **Statis** — sama di semua `ui_mode` |
+| Card program — kuota, reward, periode selesai | API `active_programs[]` |
+| Card program — judul, kriteria, label tipe user, badge | **Hardcode client** per `referee_type` |
+| Card info tidak ada program | **Hardcode client** |
+| Hero headline & subheadline | **Hardcode client** (sama semua `ui_mode`) |
 
 ### 5.2 API Contract — `GET /referral/hub`
 
@@ -163,16 +165,13 @@ Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_acti
     {
       "program_id": "NTB_2026_Q3",
       "referee_type": "NTB",
-      "referee_type_label": "Teman yang belum punya rekening BRI",
-      "period": {
-        "start_date": "2026-07-01",
+      "period_end": {
         "end_date": "2026-08-31",
         "display": "Berlaku s.d. 31 Agustus 2026"
       },
-      "rewards_by_user_type": [
+      "rewards": [
         {
           "user_type": "NTB",
-          "user_type_label": "Teman yang belum punya rekening BRI",
           "referrer_reward": {
             "amount": 25000,
             "display": "Rp25.000"
@@ -180,64 +179,24 @@ Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_acti
           "referee_reward": {
             "amount": 10000,
             "display": "Rp10.000"
-          },
-          "qualification": {
-            "display_summary": "Buka rekening & lakukan setoran/transaksi pertama min. Rp50.000 dalam 7 hari"
           }
         }
       ],
-      "referee_criteria": [
-        {
-          "code": "NO_BRI_ACCOUNT",
-          "display": "Belum punya rekening BRI sama sekali"
-        },
-        {
-          "code": "NEVER_USED_QITA",
-          "display": "Belum pernah pakai BRImo atau Qita"
-        }
-      ],
-      "qualification": {
-        "action_type": "OPEN_ACCOUNT_FIRST_TRANSACTION",
-        "display_summary": "Buka rekening & lakukan setoran/transaksi pertama min. Rp50.000 dalam 7 hari",
-        "deadline_days": 7,
-        "min_amount": 50000,
-        "min_amount_display": "Rp50.000",
-        "reward_processing_days": 2
-      },
       "quota": {
         "max_per_referrer": 200,
         "used_by_referrer": 12
-      },
-      "share_copy": {
-        "template": "(tidak dipakai di halaman referral — gunakan share_copy_default tanpa nominal)"
-      },
-      "tnc": {
-        "title": "Program Ajak Teman Baru",
-        "sections": [
-          {
-            "title": "Reward",
-            "content": "Pengundang: Rp25.000 per teman NTB. Teman yang diajak: Rp10.000."
-          },
-          {
-            "title": "Syarat Teman yang Diajak",
-            "content": "Belum pernah memiliki rekening BRI. Melakukan setoran/transaksi pertama min. Rp50.000 dalam 7 hari."
-          }
-        ]
       }
     },
     {
       "program_id": "ETB_2026_Q3",
       "referee_type": "ETB",
-      "referee_type_label": "Teman pengguna BRI/BRImo",
-      "period": {
-        "start_date": "2026-07-01",
+      "period_end": {
         "end_date": "2026-08-31",
         "display": "Berlaku s.d. 31 Agustus 2026"
       },
-      "rewards_by_user_type": [
+      "rewards": [
         {
           "user_type": "ETB_CIF",
-          "user_type_label": "Teman yang punya rekening BRI (belum BRImo)",
           "referrer_reward": {
             "amount": 15000,
             "display": "Rp15.000"
@@ -245,14 +204,10 @@ Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_acti
           "referee_reward": {
             "amount": 5000,
             "display": "Rp5.000"
-          },
-          "qualification": {
-            "display_summary": "Aktivasi Qita dengan rekening BRI yang sudah ada & lakukan transaksi pertama dalam 7 hari"
           }
         },
         {
           "user_type": "ETB_BERBRIMO",
-          "user_type_label": "Teman pengguna BRImo",
           "referrer_reward": {
             "amount": 20000,
             "display": "Rp20.000"
@@ -260,43 +215,15 @@ Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_acti
           "referee_reward": {
             "amount": 8000,
             "display": "Rp8.000"
-          },
-          "qualification": {
-            "display_summary": "Aktivasi Qita dengan rekening BRI/BRImo yang sudah ada & lakukan transaksi pertama dalam 7 hari"
           }
         }
       ],
-      "referee_criteria": [
-        {
-          "code": "HAS_BRI_ACCOUNT",
-          "display": "Sudah punya rekening BRI atau BRImo"
-        },
-        {
-          "code": "NEVER_USED_QITA",
-          "display": "Belum pernah pakai Qita"
-        }
-      ],
-      "qualification": {
-        "action_type": "ACTIVATE_EXISTING_FIRST_TRANSACTION",
-        "display_summary": "Aktivasi Qita dengan rekening BRI yang sudah ada & lakukan transaksi pertama dalam 7 hari",
-        "deadline_days": 7,
-        "reward_processing_days": 2
-      },
       "quota": {
         "max_per_referrer": 200,
         "used_by_referrer": 12
-      },
-      "share_copy": {
-        "template": "(tidak dipakai di halaman referral — gunakan share_copy_default tanpa nominal)"
-      },
-      "tnc": {
-        "title": "Program Ajak Pengguna BRI/BRImo",
-        "sections": [ "..." ]
       }
     }
   ],
-
-  "no_program_card": null,
 
   "general_tnc": {
     "version": "1.0",
@@ -328,9 +255,9 @@ Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_acti
     "subheadline": "Bagikan kode referralmu dan ajak temanmu bergabung"
   },
   "active_programs": [],
-  "no_program_card": {
-    "title": "Program Reward",
-    "message": "Belum ada program reward saat ini. Kamu tetap bisa mengajak teman ke Qita — kode referral kamu tetap berlaku."
+  "general_tnc": {
+    "version": "1.0",
+    "sections": [ "..." ]
   },
   "share_copy_default": {
     "no_reward": "Coba Qita, aplikasi banking BRI yang praktis. Pakai kode {referral_code} saat daftar."
@@ -342,9 +269,11 @@ Konten dinamis di-map dari `active_programs[]` — **hanya program yang `is_acti
 
 **Catatan field wajib:**
 - `active_programs[]` hanya berisi program dengan `is_active: true` di Procash (0–2 item).
-- `no_program_card` hanya dikirim jika `active_programs[]` kosong; selain itu `null`.
+- Per item program, **field dinamis untuk card** hanya: `period_end`, `rewards[]`, `quota`.
+- `referee_type` dipakai client untuk memilih **template hardcode** card (NTB vs ETB).
+- `rewards[]`: `user_type` untuk lookup label hardcode; `referrer_reward` & `referee_reward` dari API.
 - `hero` sama di semua response — tidak bergantung `ui_mode`.
-- Client **hanya render card** untuk item di `active_programs[]`, plus `no_program_card` jika kosong.
+- Client **hanya render card** untuk item di `active_programs[]`; saat kosong, tampilkan card info **hardcode**.
 
 ### 5.3 Logic `ui_mode` (dihitung backend)
 
@@ -378,59 +307,83 @@ function resolveUiMode(activePrograms) {
 
 | Kondisi | Yang ditampilkan |
 |---|---|
-| `active_programs.length === 0` | **1 card informasi** dari `no_program_card` |
+| `active_programs.length === 0` | **1 card informasi** (hardcode client) |
 | `active_programs.length === 1` | **1 card program** (NTB atau ETB) |
 | `active_programs.length === 2` | **2 card program** (NTB + ETB) |
 
 #### Card Program Aktif
 
+**Field dinamis (dari API):**
+
+| Field API | Tampilan di card |
+|---|---|
+| `period_end.display` | ⏱ Berlaku s.d. 31 Agustus 2026 |
+| `rewards[].referrer_reward.display` | Kamu Rp25.000 |
+| `rewards[].referee_reward.display` | Temanmu Rp10.000 |
+| `quota.used_by_referrer` / `quota.max_per_referrer` | Kuota: 12/200 ajakan |
+
+**Hardcode di client** (berdasarkan `referee_type` + `rewards[].user_type`):
+
+| Elemen | NTB | ETB |
+|---|---|---|
+| Judul card | "Ajak Teman Baru di BRI" | "Ajak Pengguna BRI/BRImo" |
+| Badge | "Aktif" | "Aktif" |
+| Label tipe user | "Teman yang belum punya rekening BRI" | Lihat tabel di bawah |
+| Checklist kriteria | ✓ Belum punya rekening BRI sama sekali<br>✓ Belum pernah pakai BRImo atau Qita | ✓ Sudah punya rekening BRI atau BRImo<br>✓ Belum pernah pakai Qita |
+
+**Label tipe user ETB (hardcode, lookup `user_type`):**
+
+| `user_type` | Label hardcode |
+|---|---|
+| `ETB_CIF` | Teman punya rekening BRI (belum BRImo) |
+| `ETB_BERBRIMO` | Teman pengguna BRImo |
+
 ```
 ┌─────────────────────────────────────────────┐
-│  Ajak Teman Baru di BRI            [Aktif]  │
-│  ⏱ Berlaku s.d. 31 Agustus 2026             │  ← period.display per card
+│  Ajak Teman Baru di BRI            [Aktif]  │  ← hardcode
+│  ⏱ Berlaku s.d. 31 Agustus 2026             │  ← period_end.display
 ├─────────────────────────────────────────────┤
-│  Teman yang belum punya rekening BRI        │
-│  Kamu: Rp25.000  ·  Temanmu: Rp10.000      │
+│  Teman yang belum punya rekening BRI        │  ← hardcode
+│  Kamu: Rp25.000  ·  Temanmu: Rp10.000      │  ← rewards[].referrer/referee_reward
+│  Kuota: 12/200 ajakan                       │  ← quota
 ├─────────────────────────────────────────────┤
-│  ✓ Belum punya rekening BRI sama sekali     │
-│  ✓ Belum pernah pakai BRImo atau Qita       │
+│  ✓ Belum punya rekening BRI sama sekali     │  ← hardcode
+│  ✓ Belum pernah pakai BRImo atau Qita       │  ← hardcode
 └─────────────────────────────────────────────┘
 ```
 
-**Jika NTB dan ETB aktif dengan periode berbeda** — masing-masing card menampilkan `period.display` sendiri.
+**Jika NTB dan ETB aktif dengan periode berbeda** — masing-masing card menampilkan `period_end.display` sendiri.
 
 #### Card Informasi (Tidak Ada Program Aktif)
 
-Digunakan **hanya** saat `active_programs[]` kosong. Bukan card NTB/ETB.
+Digunakan **hanya** saat `active_programs[]` kosong. Bukan card NTB/ETB. **Seluruh copy hardcode di client.**
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Program Reward                             │
+│  Program Reward                             │  ← hardcode
 ├─────────────────────────────────────────────┤
-│  Belum ada program reward saat ini.         │
-│  Kamu tetap bisa mengajak teman ke Qita —   │
-│  kode referral kamu tetap berlaku.          │
+│  Belum ada program reward saat ini.         │  ← hardcode
+│  Kamu tetap bisa mengajak teman ke Qita —   │  ← hardcode
+│  kode referral kamu tetap berlaku.          │  ← hardcode
 └─────────────────────────────────────────────┘
 ```
-
-Sumber: `no_program_card.title` + `no_program_card.message`
 
 | `ui_mode` | Jumlah card di section |
 |---|---|
 | `reward_ntb` | 1 card program (NTB) |
 | `reward_etb` | 1 card program (ETB) |
 | `reward_dual` | 2 card program (NTB + ETB) |
-| `no_reward` | 1 card informasi (`no_program_card`) |
+| `no_reward` | 1 card informasi (hardcode) |
 
-#### Cara Kerja — Langkah 3 (Dinamis)
+#### Cara Kerja — Langkah 3
 
-Di-map dari `active_programs[]` — hanya program yang ditampilkan sebagai card.
+**Hardcode di client** — tidak di-map dari API. Teks mengikuti `referee_type` program yang aktif.
 
-| `ui_mode` | Langkah 3 |
+| `ui_mode` | Langkah 3 (hardcode) |
 |---|---|
-| `reward_ntb` | Satu teks dari `rewards_by_user_type[0].qualification` |
-| `reward_etb` | Satu bullet per entry di `rewards_by_user_type[]` |
-| `reward_dual` | Bullet per program aktif, per tipe user jika berbeda |
+| `reward_ntb` | "Teman buka rekening & lakukan setoran/transaksi pertama" |
+| `reward_etb` | "Teman aktivasi Qita dengan rekening BRI/BRImo yang sudah ada & transaksi pertama" |
+| `reward_dual` | Dua bullet — satu per `referee_type` aktif (copy hardcode NTB & ETB) |
 | `no_reward` | Langkah 3 **tidak di-render** (hanya 2 langkah) |
 
 #### Share Copy
@@ -449,7 +402,7 @@ Placeholder di template: `{referral_code}`, `{referee_reward}`, `{referrer_rewar
 | Lapisan | Sumber | Kapan tampil |
 |---|---|---|
 | Ketentuan umum | `general_tnc.sections[]` | Selalu |
-| Detail program | `active_programs[].tnc` |
+| Detail program | **Hardcode client** per `referee_type` + nominal dari `active_programs[].rewards[]` | Saat program aktif |
 
 ### 5.5 API Contract — Onboarding Referee
 
@@ -495,10 +448,12 @@ Bagian ini adalah **acuan utama untuk UI/UX Designer** — merangkum seluruh kep
 
 | Informasi | Hero | Card Program Aktif | Card Info (no program) | Share Copy |
 |---|---|---|---|---|
-| Nominal reward | ❌ | ✅ | ❌ | ❌ |
-| Masa berlaku | ❌ | ✅ | ❌ | ❌ |
-| Kriteria teman | ❌ | ✅ | ❌ | ❌ |
-| Belum ada reward / tetap bisa ajak | ❌ | — | ✅ | ❌ |
+| Nominal reward | ❌ | ✅ (API) | ❌ | ❌ |
+| Periode selesai | ❌ | ✅ (API) | ❌ | ❌ |
+| Kuota ajakan | ❌ | ✅ (API) | ❌ | ❌ |
+| Kriteria teman | ❌ | ✅ (hardcode) | ❌ | ❌ |
+| Judul & label tipe user | ❌ | ✅ (hardcode) | ❌ | ❌ |
+| Belum ada reward / tetap bisa ajak | ❌ | — | ✅ (hardcode) | ❌ |
 | Kode referral | ✅ | — | — | ✅ |
 
 **Yang berubah antar state hanya section card** — hero tetap sama.
@@ -578,57 +533,87 @@ Kode **selalu tampil** di semua state. Tap [Salin] → toast "Kode berhasil disa
 
 ### 6.6 Komponen: Card Program Aktif
 
+**Prinsip:** client memilih template card berdasarkan `referee_type`, lalu mengisi **4 field dinamis** dari API: periode selesai, reward referrer, reward referee, dan kuota.
+
 **Anatomi card:**
 
 ```
 ┌─────────────────────────────────────────────┐
-│  {referee_type_label}              [Aktif]  │  ← header + badge pill
-│  ⏱ {period.display}                         │  ← masa berlaku per program
+│  [Judul card — hardcode]           [Aktif]  │
+│  ⏱ {period_end.display}                     │  ← API
 ├─────────────────────────────────────────────┤
-│  {user_type_label}                          │  ← per entry rewards_by_user_type
-│  Kamu {referrer_reward.display}             │
-│       · Temanmu {referee_reward.display}    │
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │  ← divider jika >1 tipe user
-│  {user_type_label}                          │
-│  Kamu ... · Temanmu ...                     │
+│  [Label tipe user — hardcode]               │
+│  Kamu {referrer_reward.display}             │  ← API
+│       · Temanmu {referee_reward.display}    │  ← API
+│  Kuota: {used}/{max} ajakan                 │  ← API
+│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │  ← divider jika ETB >1 user_type
+│  [Label tipe user 2 — hardcode]             │
+│  Kamu ... · Temanmu ...                     │  ← API
 ├─────────────────────────────────────────────┤
-│  ✓ {referee_criteria[0].display}           │
-│  ✓ {referee_criteria[1].display}           │
+│  ✓ [Kriteria 1 — hardcode]                  │
+│  ✓ [Kriteria 2 — hardcode]                  │
 └─────────────────────────────────────────────┘
 ```
+
+**Mapping field:**
+
+| Elemen card | Sumber |
+|---|---|
+| Judul, badge "Aktif", label tipe user, checklist kriteria | **Hardcode** per `referee_type` / `user_type` |
+| `period_end.display` | **API** |
+| `rewards[].referrer_reward.display` | **API** |
+| `rewards[].referee_reward.display` | **API** |
+| `quota.used_by_referrer` / `quota.max_per_referrer` | **API** |
 
 **Spesifikasi visual:**
 
 | Elemen | Spec |
 |---|---|
-| Badge "Aktif" | Pill kecil, warna brand (hijau/biru), pojok kanan atas card |
+| Badge "Aktif" | Pill kecil, warna brand (hijau/biru), pojok kanan atas card — **hardcode** |
 | Card container | Background highlight subtle / border brand, elevation 1 |
-| `period.display` | Ikon ⏱ + teks secondary, di bawah header |
-| Baris reward | `user_type_label` regular; nominal **semibold** |
-| Divider antar tipe user | Hairline 1px di dalam card |
-| Checklist kriteria | Ikon ✓ + teks secondary |
+| `period_end.display` | Ikon ⏱ + teks secondary, di bawah header |
+| Baris reward | Label tipe user regular (**hardcode**); nominal **semibold** (**API**) |
+| Baris kuota | Teks secondary: "Kuota: {used}/{max} ajakan" |
+| Divider antar tipe user | Hairline 1px — hanya jika `rewards.length > 1` (umumnya ETB) |
+| Checklist kriteria | Ikon ✓ + teks secondary — **hardcode** |
+
+**Copy hardcode — Card NTB (`referee_type: "NTB"`):**
+
+| Elemen | Copy |
+|---|---|
+| Judul | Ajak Teman Baru di BRI |
+| Label tipe user | Teman yang belum punya rekening BRI |
+| Kriteria | Belum punya rekening BRI sama sekali; Belum pernah pakai BRImo atau Qita |
+
+**Copy hardcode — Card ETB (`referee_type: "ETB"`):**
+
+| Elemen | Copy |
+|---|---|
+| Judul | Ajak Pengguna BRI/BRImo |
+| Kriteria | Sudah punya rekening BRI atau BRImo; Belum pernah pakai Qita |
 
 **Card ETB multi tipe user (contoh):**
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Ajak Pengguna BRI/BRImo           [Aktif]  │
-│  ⏱ Berlaku s.d. 15 September 2026           │
+│  Ajak Pengguna BRI/BRImo           [Aktif]  │  hardcode
+│  ⏱ Berlaku s.d. 15 September 2026           │  API
 ├─────────────────────────────────────────────┤
-│  Teman punya rekening BRI (belum BRImo)     │
-│  Kamu Rp15.000  ·  Temanmu Rp5.000          │
+│  Teman punya rekening BRI (belum BRImo)     │  hardcode (ETB_CIF)
+│  Kamu Rp15.000  ·  Temanmu Rp5.000          │  API
+│  Kuota: 12/200 ajakan                       │  API
 │  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│  Teman pengguna BRImo                       │
-│  Kamu Rp20.000  ·  Temanmu Rp8.000          │
+│  Teman pengguna BRImo                       │  hardcode (ETB_BERBRIMO)
+│  Kamu Rp20.000  ·  Temanmu Rp8.000          │  API
 ├─────────────────────────────────────────────┤
-│  ✓ Sudah punya rekening BRI atau BRImo      │
-│  ✓ Belum pernah pakai Qita                  │
+│  ✓ Sudah punya rekening BRI atau BRImo      │  hardcode
+│  ✓ Belum pernah pakai Qita                  │  hardcode
 └─────────────────────────────────────────────┘
 ```
 
 ### 6.7 Komponen: Card Informasi (Tidak Ada Program)
 
-**Satu card** — menggantikan card program saat tidak ada program aktif.
+**Satu card** — menggantikan card program saat tidak ada program aktif. **Seluruh copy hardcode di client.**
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -643,7 +628,7 @@ Kode **selalu tampil** di semua state. Tap [Salin] → toast "Kode berhasil disa
 | Elemen | Spec |
 |---|---|
 | Container | Background netral, bukan gray-out |
-| Konten | Tanpa nominal, tanpa periode, tanpa checklist kriteria |
+| Konten | **Hardcode** — tanpa nominal, tanpa periode, tanpa kuota |
 | Posisi | Menggantikan area card program — bukan di hero |
 
 **Alasan desain:** satu card info lebih jelas daripada 2 card NTB/ETB kosong atau menghilangkan section sepenuhnya.
@@ -655,7 +640,7 @@ Kode **selalu tampil** di semua state. Tap [Salin] → toast "Kode berhasil disa
 | A — `reward_ntb` | 1× Card program NTB |
 | B — `reward_dual` | 1× Card NTB + 1× Card ETB |
 | C — `reward_etb` | 1× Card program ETB |
-| D — `no_reward` | 1× Card informasi (`no_program_card`) |
+| D — `no_reward` | 1× Card informasi (hardcode) |
 
 Program tidak aktif **tidak ditampilkan** sebagai card.
 
@@ -688,6 +673,7 @@ Program tidak aktif **tidak ditampilkan** sebagai card.
 │  │                                 │    │
 │  │ Teman belum punya rekening BRI  │    │
 │  │ Kamu Rp25.000 · Teman Rp10.000  │    │
+│  │ Kuota: 12/200 ajakan            │    │
 │  │                                 │    │
 │  │ ✓ Belum punya rekening BRI      │    │
 │  │ ✓ Belum pernah pakai BRImo/Qita │    │
@@ -743,6 +729,7 @@ Program tidak aktif **tidak ditampilkan** sebagai card.
 │  │ ⏱ Berlaku s.d. 31 Agustus 2026 │    │
 │  │ Teman punya rekening BRI        │    │
 │  │ Kamu Rp15.000 · Teman Rp5.000   │    │
+│  │ Kuota: 12/200 ajakan            │    │
 │  │ ✓ Sudah punya rekening BRI      │    │
 │  │ ✓ Belum pernah pakai Qita       │    │
 │  └─────────────────────────────────┘    │
@@ -788,6 +775,7 @@ Program tidak aktif **tidak ditampilkan** sebagai card.
 │  │                                 │    │
 │  │ Teman punya rekening BRI        │    │
 │  │ Kamu Rp15.000 · Teman Rp5.000   │    │
+│  │ Kuota: 12/200 ajakan            │    │
 │  │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │    │
 │  │ Teman pengguna BRImo            │    │
 │  │ Kamu Rp20.000 · Teman Rp8.000   │    │
@@ -928,52 +916,51 @@ Setelah NIK → deteksi tipe referee:
 
 ### Skenario A — Program NTB Aktif (`reward_ntb`)
 
-| Elemen | Konten | Sumber API |
+| Elemen | Konten | Sumber |
 |---|---|---|
-| Headline | "Ajak temanmu pakai Qita" | `hero.headline` — **sama semua state** |
-| Subheadline | "Bagikan kode referralmu dan ajak temanmu bergabung" | `hero.subheadline` — **sama semua state** |
-| Card NTB | Reward per tipe user + **Berlaku s.d. 31 Agustus 2026** + kriteria | `active_programs[NTB]` |
+| Headline / Subheadline | General — sama semua state | Hardcode |
+| Card NTB — judul, kriteria, label | Copy NTB | Hardcode per `referee_type` |
+| Card NTB — reward | Kamu Rp25.000 · Teman Rp10.000 | API `rewards[]` |
+| Card NTB — periode | Berlaku s.d. 31 Agustus 2026 | API `period_end.display` |
+| Card NTB — kuota | 12/200 ajakan | API `quota` |
 | Card ETB | **Tidak ditampilkan** | — |
-| Cara kerja langkah 3 | "Buka rekening & lakukan setoran/transaksi pertama..." | `active_programs[NTB].qualification.display_summary` |
-| Share copy | "Coba Qita, aplikasi banking BRI yang praktis. Pakai kode {referral_code} saat daftar." — **tanpa nominal** | `share_copy_default` |
+| Cara kerja langkah 3 | "Teman buka rekening & lakukan setoran/transaksi pertama" | Hardcode |
+| Share copy | Tanpa nominal | `share_copy_default` |
 
 ### Skenario B — Program NTB + ETB Aktif (`reward_dual`)
 
-| Elemen | Konten | Sumber API |
+| Elemen | Konten | Sumber |
 |---|---|---|
-| Headline | "Ajak temanmu pakai Qita" | `hero.headline` — **sama semua state** |
-| Subheadline | "Bagikan kode referralmu dan ajak temanmu bergabung" | `hero.subheadline` — **sama semua state** |
-| Card NTB | Reward + periode + kriteria | `active_programs[NTB]` |
-| Card ETB | Reward per sub-tipe + periode + kriteria | `active_programs[ETB]` |
-| Cara kerja langkah 3 | Dua bullet, satu per program | `active_programs[].qualification.display_summary` |
-| Share copy | Template netral tanpa nominal spesifik | `share_copy_default` |
+| Headline / Subheadline | General — sama semua state | Hardcode |
+| Card NTB | Judul, kriteria hardcode; reward, periode, kuota dari API | Hardcode + API |
+| Card ETB | Judul, kriteria, label sub-tipe hardcode; reward, periode, kuota dari API | Hardcode + API |
+| Cara kerja langkah 3 | Dua bullet hardcode (NTB & ETB) | Hardcode |
+| Share copy | Template netral tanpa nominal | `share_copy_default` |
 | Larangan | Tidak ada pemilihan segmen sebelum share | — |
 
 ### Skenario C — Program ETB Aktif (`reward_etb`)
 
-| Elemen | Konten | Sumber API |
+| Elemen | Konten | Sumber |
 |---|---|---|
-| Headline | "Ajak temanmu pakai Qita" | `hero.headline` — **sama semua state** |
-| Subheadline | "Bagikan kode referralmu dan ajak temanmu bergabung" | `hero.subheadline` — **sama semua state** |
-| Card ETB | Reward per sub-tipe + periode + kriteria | `active_programs[ETB]` |
+| Headline / Subheadline | General — sama semua state | Hardcode |
+| Card ETB | Judul, kriteria, label sub-tipe hardcode; reward, periode, kuota dari API | Hardcode + API |
 | Card NTB | **Tidak ditampilkan** | — |
-| Cara kerja langkah 3 | "Aktivasi Qita dengan rekening BRI yang sudah ada..." | `active_programs[ETB].qualification.display_summary` |
-| Share copy | "Coba Qita, aplikasi banking BRI yang praktis. Pakai kode {referral_code} saat daftar." — **tanpa nominal** | `share_copy_default` |
+| Cara kerja langkah 3 | "Teman aktivasi Qita dengan rekening BRI/BRImo..." | Hardcode |
+| Share copy | Tanpa nominal | `share_copy_default` |
 
 *(Seluruh nominal adalah placeholder — nilai riil dari config Procash.)*
 
 ### Skenario D — Tidak Ada Program Aktif (`no_reward`)
 
-| Elemen | Konten | Sumber API |
+| Elemen | Konten | Sumber |
 |---|---|---|
-| Headline | "Ajak temanmu pakai Qita" | `hero.headline` — **sama semua state** |
-| Subheadline | "Bagikan kode referralmu dan ajak temanmu bergabung" | `hero.subheadline` — **sama semua state** |
+| Headline / Subheadline | General — sama semua state | Hardcode |
 | Card program | **Tidak ditampilkan** | — |
-| Card info | "Belum ada program reward saat ini. Kamu tetap bisa mengajak teman ke Qita — kode referral kamu tetap berlaku." | `no_program_card` |
-| Kode & share | [Bagikan ke Teman] — bukan [Bagikan Sekarang] | `referral_code` |
-| Share copy | "Coba Qita, aplikasi banking BRI yang praktis. Pakai kode {referral_code} saat daftar." | `share_copy_default.no_reward` |
-| Opt-in notifikasi | "Beri tahu saya saat ada program reward" | Statis |
-| Cara kerja | 2 langkah saja (tanpa langkah reward) | Statis |
+| Card info | "Belum ada program reward saat ini..." | Hardcode |
+| Kode & share | [Bagikan ke Teman] | `referral_code` |
+| Share copy | Tanpa nominal | `share_copy_default.no_reward` |
+| Opt-in notifikasi | "Beri tahu saya saat ada program reward" | Hardcode |
+| Cara kerja | 2 langkah saja | Hardcode |
 | Tracker ajakan baru | "Teman terdaftar — tidak ada program reward aktif saat ini" | — |
 | Larangan | Jangan tampilkan empty state "fitur mati". Jangan sembunyikan menu referral. | — |
 
@@ -992,13 +979,15 @@ Cara kerja menggunakan **template tetap** dengan slot dinamis di langkah 3. Tida
    Teman download Qita dan masukkan kode referral
    kamu saat pendaftaran atau aktivasi.
 
-③ Teman selesaikan syarat program          ← DINAMIS
-   [active_programs[].qualification.display_summary]
-   Reward cair maks. {reward_processing_days}×24 jam.
+③ Teman selesaikan syarat program          ← HARDCODE per referee_type
+   NTB: "Buka rekening & lakukan setoran/transaksi pertama"
+   ETB: "Aktivasi Qita dengan rekening BRI/BRImo & transaksi pertama"
+   Dual: dua bullet (satu per program aktif)
+   Reward cair maks. 2×24 jam.
 ```
 
-- **Single program:** satu teks di langkah 3.
-- **Dual program:** dua bullet di langkah 3, masing-masing dari `active_programs[].qualification.display_summary`.
+- **Single program:** satu teks hardcode di langkah 3 sesuai `referee_type`.
+- **Dual program:** dua bullet hardcode — satu NTB, satu ETB.
 
 ### Saat tidak ada program aktif (2 langkah)
 
@@ -1029,7 +1018,7 @@ Isi minimal:
 
 ### Lapisan 2: Detail Program Aktif (hanya saat `ui_mode` ≠ `no_reward`)
 
-Sumber: `active_programs[].tnc` + detail reward dari `active_programs[].rewards_by_user_type[]` — satu section per program aktif. **Reward di S&K harus mencantumkan nominal per tipe user**, konsisten dengan yang ditampilkan di card.
+Sumber: **Hardcode client** per `referee_type` + nominal dari `active_programs[].rewards[]` — satu section per program aktif. **Reward di S&K harus mencantumkan nominal per tipe user**, konsisten dengan yang ditampilkan di card.
 
 ```
 ┌─────────────────────────────────────┐
@@ -1043,7 +1032,7 @@ Sumber: `active_programs[].tnc` + detail reward dari `active_programs[].rewards_
 │                                     │
 │  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
 │                                     │
-│  [Detail Program Saat Ini]          │  ← active_programs[].tnc
+│  [Detail Program Saat Ini]          │  ← hardcode + nominal dari API
 │  (dinamis, per referee_type)        │     hanya jika reward aktif
 │                                     │
 │  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
@@ -1094,7 +1083,7 @@ Nudge: "Budi tinggal 1 langkah lagi — ingatkan dia transaksi pertama sebelum 1
 Endpoint terpisah: `GET /referral/invitations`
 
 - **Agregat:** "Total reward kamu: Rp75.000 dari 3 teman" (jika pernah dapat reward).
-- **Progres kuota** (mode reward aktif): "Kamu sudah mengajak 12/200" — dari `active_programs[].quota`.
+- **Progres kuota** (mode reward aktif): "Kamu sudah mengajak 12/200" — dari `active_programs[].quota` (sama field dengan card).
 
 | Status | Copy contoh | `ui_mode` | Aksi |
 |---|---|---|---|
@@ -1144,11 +1133,13 @@ Match dengan active_programs[].referee_type yang aktif?
 ## 14. Copywriting Guidelines
 
 - Dilarang menampilkan istilah: NTB, ETB, CIF, dormant, ETB X NTB, Procash.
-- **Nominal reward & masa berlaku hanya di card program aktif** — dilarang di hero, subheadline, share copy, banner, dan entry point.
-- Program tidak aktif **tidak ditampilkan** sebagai card — jangan gunakan card gray-out atau `inactive_message`.
-- Saat tidak ada program: satu card informasi (`no_program_card`) — tanpa nominal, tanpa periode.
+- **Card program — dari API:** kuota, reward referrer & referee, periode selesai (`period_end.display`).
+- **Card program — hardcode:** judul card, badge, label tipe user, checklist kriteria.
+- **Nominal reward & periode selesai hanya di card program** — dilarang di hero, share copy, banner, dan entry point.
+- Program tidak aktif **tidak ditampilkan** sebagai card.
+- Saat tidak ada program: card informasi **hardcode** — tanpa nominal, tanpa periode, tanpa kuota.
 - Share copy dari halaman referral: value prop produk, **zero mention nominal**.
-- Alasan gagal di tracker: jujur, bahasa kriteria yang sama dengan card program aktif.
+- Alasan gagal di tracker: jujur, bahasa kriteria yang sama dengan checklist hardcode di card.
 - CTA: "Bagikan Sekarang" (ada reward) vs "Bagikan ke Teman" (tanpa reward).
 
 ## 15. Edge Cases
@@ -1183,7 +1174,7 @@ Match dengan active_programs[].referee_type yang aktif?
 > **Acuan utama desain: Section 6 — Spesifikasi UI Lengkap**
 
 1. High-fidelity design Referral Hub untuk **4 state** (A/B/C/D) mengikuti wireframe Section 6.9–6.12.
-2. Komponen card program aktif (Section 6.6) dan card informasi tidak ada program (Section 6.7).
+2. Komponen card program aktif (Section 6.6) — spec field dinamis vs hardcode — dan card informasi (Section 6.7).
 3. Komponen hero, kode, CTA, cara kerja, tracker, bottom sheet (Section 6.4–6.5, 6.13–6.15).
 4. Flow referee onboarding (Section 6.17).
 5. Entry points tanpa nominal (Section 6.16).
