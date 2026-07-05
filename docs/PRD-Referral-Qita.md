@@ -5,9 +5,19 @@
 | **Dokumen** | Product Requirements Document (PRD) |
 | **Fitur** | Referral Hub Qita |
 | **Audiens dokumen** | UI/UX Designer, Frontend, Backend |
-| **Status** | Draft v1.6 |
+| **Status** | Draft v1.7 (Final) |
 | **Product Owner** | Tim Product Qita |
 | **Tanggal** | Juli 2026 |
+
+### Changelog
+
+| Versi | Perubahan utama |
+|---|---|
+| v1.0–v1.3 | Model bisnis, state referral, eligibility referee |
+| v1.4 | `rewards_by_user_type[]` per tipe user |
+| v1.5 | Reward nominal hanya di card |
+| v1.6 | Masa berlaku hanya di card; copy card tidak aktif |
+| v1.7 | **Spesifikasi UI lengkap (Section 6)** — wireframe semua state, komponen, visual spec |
 
 ---
 
@@ -204,7 +214,7 @@ Konten dinamis di-map dari array `programs[]` — **selalu berisi kedua segmen**
         "used_by_referrer": 12
       },
       "share_copy": {
-        "template": "Belum punya rekening? Buka rekening BRI pertamamu di Qita pakai kode {referral_code}, langsung dapat {referee_reward}!"
+        "template": "(tidak dipakai di halaman referral — gunakan share_copy_default tanpa nominal)"
       },
       "tnc": {
         "title": "Program Ajak Teman Baru",
@@ -284,7 +294,7 @@ Konten dinamis di-map dari array `programs[]` — **selalu berisi kedua segmen**
         "used_by_referrer": 12
       },
       "share_copy": {
-        "template": "Udah punya BRImo atau rekening BRI? Cobain Qita — aktivasi pakai kode {referral_code}, dapat {referee_reward}!"
+        "template": "(tidak dipakai di halaman referral — gunakan share_copy_default tanpa nominal)"
       },
       "tnc": {
         "title": "Program Ajak Pengguna BRI/BRImo",
@@ -490,42 +500,362 @@ Jika referee tidak match program aktif: `matched_program: null` → tidak ada ja
 
 **Implikasi untuk designer:** semua komponen teks harus didesain dengan asumsi konten variabel. Siapkan spec untuk truncation dan dynamic type.
 
-## 6. Struktur Halaman Referral Hub
+---
 
-### Mode Reward Aktif (State A / B / C)
+## 6. Spesifikasi UI Lengkap
+
+Bagian ini adalah **acuan utama untuk UI/UX Designer** — merangkum seluruh keputusan desain terbaru dalam bentuk wireframe, komponen, dan aturan tampilan.
+
+### 6.1 Aturan Penempatan Konten
+
+| Informasi | Hero | Card Aktif | Card Tidak Aktif | Share Copy | Tracker |
+|---|---|---|---|---|---|
+| Nominal reward (referrer & referee) | ❌ | ✅ | ❌ | ❌ | ✅ (riwayat cair) |
+| Masa berlaku program | ❌ | ✅ | ❌ | ❌ | — |
+| Kriteria siapa yang bisa diajak | ❌ | ✅ | ❌ | ❌ | — |
+| Status program aktif/tidak aktif | ❌ | ✅ badge "Aktif" | ✅ `inactive_message` | — | — |
+| Bisa tetap ajak meski tidak ada reward | — | — | ✅ | — | — |
+| Kode referral | ✅ | — | — | ✅ | — |
+
+**Satu-satunya tempat** referrer membaca reward + periode + kriteria = **card program** di section "Siapa yang bisa kamu ajak".
+
+### 6.2 Visual Hierarchy (urutan scan user)
 
 ```
-┌─────────────────────────────────────┐
-│ ① HERO: ilustrasi + headline +      │  Above the fold.
-│    subheadline (tanpa nominal)      │  Tanpa periode
-│ ② KODE REFERRAL [Salin]             │  Menjawab: "apa yang harus
-│    [ Bagikan Sekarang ] (primary)   │   saya lakukan?"
-├─────────────────────────────────────┤
-│ ③ SIAPA YANG BISA KAMU AJAK         │  ← reward + periode HANYA di card
-│ ④ CARA KERJA (3 langkah)            │  ← langkah 3: programs[].qualification
-│ ⑤ STATUS AJAKANMU (tracker)         │  + agregat total reward
-│ ⑥ S&K (bottom sheet trigger)        │  ← general_tnc + programs[].tnc
-└─────────────────────────────────────┘
+1. Apa yang harus saya lakukan?     → Kode referral + tombol Bagikan
+2. Siapa yang bisa diajak & berapa?  → Card program (NTB + ETB)
+3. Bagaimana caranya?               → Cara kerja
+4. Apa status ajakan saya?          → Tracker
+5. Aturan lengkapnya?               → S&K
 ```
 
-### Mode Tanpa Reward (State D)
+Hero berfungsi sebagai **pengantar kualitatif** — bukan sumber informasi reward.
+
+### 6.3 Kerangka Halaman (Template Tetap — Semua State)
 
 ```
-┌─────────────────────────────────────┐
-│ ① HERO: ilustrasi + headline        │  Above the fold.
-│    non-monetary + penjelasan status │
-│ ② KODE REFERRAL [Salin]             │  Tetap prominent.
-│    [ Bagikan ke Teman ] (primary)   │
-│ ③ OPT-IN NOTIFIKASI                 │  "Beri tahu saya saat ada reward"
-├─────────────────────────────────────┤
-│ ④ SIAPA YANG BISA KAMU AJAK         │  ← kedua slot tidak aktif + inactive_message
-│ ⑤ CARA KERJA (2 langkah)            │  Tanpa langkah reward
-│ ⑥ STATUS AJAKANMU (tracker)         │  Riwayat lama + ajakan tanpa reward
-│ ⑦ S&K (bottom sheet trigger)        │  ← general_tnc saja
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│  ←  Ajak Teman                          │  App bar
+├─────────────────────────────────────────┤
+│                                         │
+│  [Ilustrasi referral]                   │
+│                                         │
+│  HEADLINE (kualitatif, tanpa nominal)   │
+│  Subheadline (arahkan ke card di bawah) │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │  QITA-ABC123          [Salin]   │    │  Kode referral
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │   [ Bagikan Sekarang /          │    │  CTA primary full-width
+│  │     Bagikan ke Teman ]          │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  Siapa yang bisa kamu ajak?             │  Section header
+│  [Card Program NTB]                     │
+│  [Card Program ETB]                     │
+│                                         │
+│  Cara kerjanya                          │
+│  [Step 1] [Step 2] [Step 3 opsional]    │
+│                                         │
+│  Status ajakanmu                        │
+│  [Tracker list]                         │
+│                                         │
+│  Pelajari Syarat & Ketentuan →          │
+│                                         │
+└─────────────────────────────────────────┘
 ```
 
-Elemen above the fold wajib terlihat tanpa scroll di device baseline.
+**Above the fold** (tanpa scroll): ilustrasi → headline → kode → tombol share.
+
+### 6.4 Komponen: Hero
+
+| `ui_mode` | Headline | Subheadline |
+|---|---|---|
+| `reward_ntb` | "Ajak temanmu buka rekening pertama di Qita" | "Lihat reward yang bisa kamu dapat di bawah" |
+| `reward_etb` | "Ajak teman pengguna BRI atau BRImo pakai Qita" | "Lihat reward yang bisa kamu dapat di bawah" |
+| `reward_dual` | "Ajak temanmu ke Qita dan dapatkan reward" | "Lihat detail reward untuk setiap tipe teman di bawah" |
+| `no_reward` | "Ajak temanmu rasakan Qita" | "Belum ada program reward saat ini. Kode kamu tetap bisa dibagikan." |
+
+**Larangan hero:** nominal reward, masa berlaku, checklist kriteria.
+
+### 6.5 Komponen: Kode Referral + CTA
+
+```
+┌──────────────────────────────────┐
+│  QITA-ABC123            [Salin]  │   monospace / letter-spacing
+└──────────────────────────────────┘
+```
+
+| Kondisi | Label tombol |
+|---|---|
+| Ada program reward aktif (`reward_*`) | **Bagikan Sekarang** |
+| Tidak ada program (`no_reward`) | **Bagikan ke Teman** |
+
+Kode **selalu tampil** di semua state. Tap [Salin] → toast "Kode berhasil disalin". Tap CTA → native share sheet dengan `share_copy_default` (tanpa nominal).
+
+### 6.6 Komponen: Card Program Aktif
+
+**Anatomi card:**
+
+```
+┌─────────────────────────────────────────────┐
+│  {referee_type_label}              [Aktif]  │  ← header + badge pill
+│  ⏱ {period.display}                         │  ← masa berlaku per program
+├─────────────────────────────────────────────┤
+│  {user_type_label}                          │  ← per entry rewards_by_user_type
+│  Kamu {referrer_reward.display}             │
+│       · Temanmu {referee_reward.display}    │
+│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │  ← divider jika >1 tipe user
+│  {user_type_label}                          │
+│  Kamu ... · Temanmu ...                     │
+├─────────────────────────────────────────────┤
+│  ✓ {referee_criteria[0].display}           │
+│  ✓ {referee_criteria[1].display}           │
+└─────────────────────────────────────────────┘
+```
+
+**Spesifikasi visual:**
+
+| Elemen | Spec |
+|---|---|
+| Badge "Aktif" | Pill kecil, warna brand (hijau/biru), pojok kanan atas card |
+| Card container | Background highlight subtle / border brand, elevation 1 |
+| `period.display` | Ikon ⏱ + teks secondary, di bawah header |
+| Baris reward | `user_type_label` regular; nominal **semibold** |
+| Divider antar tipe user | Hairline 1px di dalam card |
+| Checklist kriteria | Ikon ✓ + teks secondary |
+
+**Card ETB multi tipe user (contoh):**
+
+```
+┌─────────────────────────────────────────────┐
+│  Ajak Pengguna BRI/BRImo           [Aktif]  │
+│  ⏱ Berlaku s.d. 15 September 2026           │
+├─────────────────────────────────────────────┤
+│  Teman punya rekening BRI (belum BRImo)     │
+│  Kamu Rp15.000  ·  Temanmu Rp5.000          │
+│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
+│  Teman pengguna BRImo                       │
+│  Kamu Rp20.000  ·  Temanmu Rp8.000          │
+├─────────────────────────────────────────────┤
+│  ✓ Sudah punya rekening BRI atau BRImo      │
+│  ✓ Belum pernah pakai Qita                  │
+└─────────────────────────────────────────────┘
+```
+
+### 6.7 Komponen: Card Program Tidak Aktif
+
+```
+┌─────────────────────────────────────────────┐
+│  {referee_type_label}                       │  ← tanpa badge Aktif
+├─────────────────────────────────────────────┤
+│  {inactive_message}                         │
+│                                             │
+│  Contoh:                                    │
+│  "Belum ada reward untuk program ini saat    │
+│   ini. Kamu tetap bisa mengajak teman       │
+│   pengguna BRI/BRImo — kode referral kamu   │
+│   tetap berlaku."                           │
+└─────────────────────────────────────────────┘
+```
+
+**Spesifikasi visual:**
+
+| Elemen | Spec |
+|---|---|
+| Container | Background netral, **bukan** opacity 40% / gray-out |
+| Ikon | Opsional ⓘ di awal `inactive_message` |
+| Interaksi | Tidak ada tombol disabled — user tetap share via CTA di atas |
+| Konten | Tanpa periode, tanpa nominal, tanpa checklist |
+
+### 6.8 Layout Card per State
+
+| State | Card NTB | Card ETB |
+|---|---|---|
+| A — `reward_ntb` | 🟢 Aktif (reward + periode) | ⚪ Tidak aktif (tetap bisa ajak) |
+| B — `reward_dual` | 🟢 Aktif | 🟢 Aktif (periode masing-masing) |
+| C — `reward_etb` | ⚪ Tidak aktif | 🟢 Aktif (multi tipe user) |
+| D — `no_reward` | ⚪ Tidak aktif | ⚪ Tidak aktif |
+
+**Dual program, periode berbeda:** masing-masing card menampilkan `period.display` sendiri — tidak digabung.
+
+### 6.9 Wireframe Lengkap — State A (Hanya NTB Aktif)
+
+```
+┌─────────────────────────────────────────┐
+│  ←  Ajak Teman                          │
+├─────────────────────────────────────────┤
+│         [ilustrasi share]               │
+│                                         │
+│  Ajak temanmu buka rekening pertama     │
+│  di Qita                                │
+│  Lihat reward yang bisa kamu dapat      │
+│  di bawah                               │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │  QITA-ABC123          [Salin]   │    │
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │      Bagikan Sekarang           │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  Siapa yang bisa kamu ajak?             │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ Ajak Teman Baru di BRI  [Aktif]│    │
+│  │ ⏱ Berlaku s.d. 31 Agustus 2026 │    │
+│  │                                 │    │
+│  │ Teman belum punya rekening BRI  │    │
+│  │ Kamu Rp25.000 · Teman Rp10.000  │    │
+│  │                                 │    │
+│  │ ✓ Belum punya rekening BRI      │    │
+│  │ ✓ Belum pernah pakai BRImo/Qita │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ Ajak Pengguna BRI/BRImo         │    │
+│  │                                 │    │
+│  │ Belum ada reward untuk program  │    │
+│  │ ini saat ini. Kamu tetap bisa   │    │
+│  │ mengajak teman — kode referral  │    │
+│  │ kamu tetap berlaku.             │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  Cara kerjanya                          │
+│  ① Bagikan kode                         │
+│  ② Teman daftar pakai kodemu            │
+│  ③ Teman setor/transaksi pertama        │
+│                                         │
+│  Status ajakanmu                        │
+│  Total reward: Rp75.000 · 12/200 ajakan │
+│  [list ajakan...]                       │
+│                                         │
+│  Pelajari Syarat & Ketentuan →          │
+└─────────────────────────────────────────┘
+```
+
+### 6.10 Wireframe Lengkap — State B (NTB + ETB Aktif)
+
+Sama dengan State A, dengan perubahan:
+- Headline: "Ajak temanmu ke Qita dan dapatkan reward"
+- **Kedua card aktif** — masing-masing punya periode & reward sendiri
+- Caption di bawah card (opsional): *"Nggak perlu bingung — bagikan saja kodenya, sistem kami yang menentukan reward-nya."*
+- Cara kerja langkah 3: dua bullet (satu per program aktif)
+
+### 6.11 Wireframe Lengkap — State C (Hanya ETB Aktif)
+
+Sama dengan State A, dengan perubahan:
+- Headline: "Ajak teman pengguna BRI atau BRImo pakai Qita"
+- Card NTB = tidak aktif, Card ETB = aktif dengan **multi baris reward** (CIF + BerBRImo)
+- Ilustrasi hero: visual "berpindah/mencoba app" (bukan buka rekening baru)
+
+### 6.12 Wireframe Lengkap — State D (Tidak Ada Program)
+
+```
+┌─────────────────────────────────────────┐
+│  ←  Ajak Teman                          │
+├─────────────────────────────────────────┤
+│         [ilustrasi]                     │
+│                                         │
+│  Ajak temanmu rasakan Qita              │
+│  Belum ada program reward saat ini.     │
+│  Kode kamu tetap bisa dibagikan.        │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │  QITA-ABC123          [Salin]   │    │
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │      Bagikan ke Teman           │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  🔔 Beri tahu saya saat ada program     │
+│     reward                              │
+│                                         │
+│  Siapa yang bisa kamu ajak?             │
+│  [Card NTB — tidak aktif]               │
+│  [Card ETB — tidak aktif]               │
+│                                         │
+│  Cara kerjanya (2 langkah saja)           │
+│  ① Bagikan kode  ② Teman daftar         │
+│                                         │
+│  Status ajakanmu (riwayat lama tetap)   │
+│  Pelajari Syarat & Ketentuan →          │
+└─────────────────────────────────────────┘
+```
+
+### 6.13 Komponen: Cara Kerja
+
+**3 langkah** (ada program aktif) / **2 langkah** (tidak ada program).
+
+```
+  ①  Bagikan kode referral kamu
+  ②  Teman gabung Qita pakai kodemu
+  ③  Teman selesaikan syarat program     ← dinamis, hanya jika reward aktif
+```
+
+Visual: numbered circle + teks. Opsional ilustrasi kecil per langkah.
+
+### 6.14 Komponen: Tracker
+
+```
+┌─────────────────────────────────────────┐
+│  Total reward kamu: Rp75.000            │
+│  Kamu sudah mengajak 12/200             │
+├─────────────────────────────────────────┤
+│  👤 Budi                                │
+│  Sudah gabung, tinggal transaksi pertama│  [Ingatkan]
+├─────────────────────────────────────────┤
+│  👤 Siti · Rp25.000 · 2 Jul 2026       │
+│  Program Ajak Teman Baru                │
+├─────────────────────────────────────────┤
+│  👤 Andi                                │
+│  Tidak memenuhi kriteria program        │
+└─────────────────────────────────────────┘
+```
+
+### 6.15 Komponen: Bottom Sheet & Interupsi
+
+| Trigger | Konten |
+|---|---|
+| Program reward baru | "Program reward baru! Cek detail reward di halaman Ajak Teman." [Mengerti, Bagikan Sekarang] |
+| Program berakhir | "Program reward sudah berakhir. Kode kamu tetap bisa dibagikan." [Mengerti] |
+| Reward baru cair | Snackbar di atas hero: "🎉 Rp25.000 sudah masuk dari ajakan ke Budi!" |
+| First-time visit | Coachmark 3 langkah cara kerja (dismissible, sekali seumur akun) |
+
+### 6.16 Entry Points (di luar Referral Hub)
+
+| Entry point | Copy (tanpa nominal) | Aksi |
+|---|---|---|
+| Banner homepage | "Ajak temanmu ke Qita — ada program reward!" | Deep link ke Referral Hub |
+| Post-transaksi | "Kenalkan Qita ke temanmu & cek reward-nya" | Deep link |
+| Menu profil | "Ajak Teman" | Navigasi ke Referral Hub |
+| Push notifikasi | "Program reward baru! Cek sekarang." | Deep link |
+
+### 6.17 Onboarding Referee (layar terpisah)
+
+Setelah NIK → deteksi tipe referee:
+
+**Match program aktif:**
+```
+┌─────────────────────────────────────────┐
+│  Kamu diajak Ahmad!                     │
+│  Selesaikan pendaftaran & transaksi     │
+│  pertama untuk dapat Rp10.000           │  ← nominal OK di sini
+│  [Tracker syarat + deadline]            │
+└─────────────────────────────────────────┘
+```
+
+**Tidak match:** onboarding normal, **tanpa janji nominal**.
+
+### 6.18 Loading & Error State
+
+| State | Perlakuan |
+|---|---|
+| Loading | Skeleton mengikuti template (hero + 2 card + kode) — tanpa layout shift |
+| Config gagal | Fallback `no_reward` — **tidak pernah** tampilkan nominal dari cache |
+
+---
 
 ## 7. Requirement per Skenario
 
@@ -784,16 +1114,15 @@ Match dengan programs[].referee_type yang aktif?
 
 ## 17. Deliverables yang Diminta dari Designer
 
-1. High-fidelity design Referral Hub untuk **4 skenario** (A/B/C/D) dari satu template komponen.
-2. **Komponen card program:** varian aktif (periode + reward per tipe user + kriteria + badge "Aktif") dan tidak aktif (`inactive_message`: belum ada reward, tetap bisa ajak).
-3. State transisi: reward aktif ↔ tanpa reward, ganti segmen, reward cair, ajakan menggantung.
-4. Cara kerja: template 3 langkah (reward) dan 2 langkah (tanpa reward) dengan slot dinamis langkah 3.
-5. S&K bottom sheet: Lapisan 1 (umum) + Lapisan 2 (detail program dinamis).
-6. Flow referee: deep link → deteksi `referee_type` → janji reward (match) / tanpa janji (mismatch).
-7. Tracker referrer: 5 varian status + agregat + progres kuota.
-8. Entry points: banner homepage, card post-transaksi, push notification (reward vs non-reward).
-9. Spec komponen dinamis: teks variabel, truncation, dynamic type, transisi tanpa layout shift.
-10. Spec tombol CTA: "Bagikan Sekarang" vs "Bagikan ke Teman".
+> **Acuan utama desain: Section 6 — Spesifikasi UI Lengkap**
+
+1. High-fidelity design Referral Hub untuk **4 state** (A/B/C/D) mengikuti wireframe Section 6.9–6.12.
+2. Komponen card program: varian aktif (Section 6.6) dan tidak aktif (Section 6.7).
+3. Komponen hero, kode, CTA, cara kerja, tracker, bottom sheet (Section 6.4–6.5, 6.13–6.15).
+4. Flow referee onboarding (Section 6.17).
+5. Entry points tanpa nominal (Section 6.16).
+6. Loading skeleton & error state (Section 6.18).
+7. Spec komponen dinamis: truncation, dynamic type, transisi tanpa layout shift.
 
 ## 18. Open Questions
 
