@@ -1,10 +1,38 @@
 # PRD — Referral Hub Qita
 
+## Konteks Bisnis
+
+**Goals**
+
+1. **Tujuan referral ke ETB** — meningkatkan jumlah pengguna Qita dari segmen existing BRI. Ada target akhir tahun sebanyak **X pengguna** sebelum grand launching.
+
+**Masalah**
+
+1. **Reward hanya berdasarkan program yang dibuat di Procash** — jika tidak ada program aktif (periode selesai atau kuota habis), referrer dan referee **tidak mendapat reward**.
+2. **Pilihan misi di Procash saat ini hanya setoran** — misi setoran sesuai untuk NTB, tetapi **tidak sesuai untuk ETB** karena ETB sudah memiliki rekening BRI.
+3. **ETB saat ini tanpa misi** (akan dikembangkan di sisi Procash) — jika ETB berhasil onboarding ke Qita, referral dianggap berhasil dan referrer mendapat reward tanpa syarat setoran.
+
+---
+
 ## 1. Deskripsi
+
+### Fitur Referral
+
+Fitur **referral** memungkinkan pengguna Qita (referrer) mengajak orang lain (referee) bergabung menggunakan kode referral unik miliknya. Referrer membagikan kode tersebut; referee memasukkan kode saat mendaftar atau onboarding di Qita.
+
+Alur secara umum:
+1. Referrer mendapat kode referral dan membagikannya ke teman
+2. Referee mendaftar atau onboarding di Qita menggunakan kode tersebut
+3. Jika memenuhi syarat program reward yang sedang aktif, referrer (dan referee) mendapat reward
+4. Referrer dapat memantau status setiap ajakan di riwayat
+
+Kode referral **selalu aktif** — user bisa share kapan saja. Reward hanya diberikan jika ada **program aktif di Procash** dan referee memenuhi syarat program tersebut.
+
+### Halaman Ajak Teman
 
 Halaman **Ajak Teman** di aplikasi Qita — tempat user melihat kode referral, membagikannya, dan memahami **program reward mana yang sedang berjalan** serta **tipe teman siapa saja yang bisa diajak** agar referrer dan temannya mendapat reward.
 
-Qita adalah aplikasi banking BRI. Program reward dikonfigurasi tim marketing melalui dashboard internal (di luar scope desain ini).
+Qita adalah aplikasi banking BRI. Program reward dikonfigurasi tim marketing melalui dashboard Procash (di luar scope desain ini).
 
 **Dua lapisan yang harus dipisahkan:**
 
@@ -33,14 +61,13 @@ Satu program hanya menargetkan **satu tipe teman**:
 - Urutan card: NTB → ETB CIF → ETB BerBRImo → ETB X NTB
 - Istilah NTB, ETB, CIF, dormant **tidak boleh** muncul di UI
 
-**Goals**
+**Goals (desain)**
 
-1. **Tujuan referral ke ETB** — meningkatkan jumlah pengguna Qita dari segmen existing BRI. Ada target akhir tahun sebanyak **X pengguna** sebelum grand launching.
-2. Satu halaman Referral Hub adaptif — template tetap, isi card mengikuti program aktif.
-3. Hero general di semua kondisi — mengajak pakai Qita tanpa menyebut reward.
-4. **Hanya section program reward yang berubah** — tanpa card (tidak ada program) hingga 4 card (semua program aktif).
-5. Referrer membaca di halaman referral: reward (referrer & referee), periode selesai, kuota, dan **tipe user** — yaitu tipe teman mana yang eligible untuk program di card tersebut (contoh: "Teman yang belum punya rekening BRI" untuk program NTB).
-6. Satu program = satu tipe teman = satu card. Tidak ada multi-reward dalam satu card.
+1. Satu halaman Referral Hub adaptif — template tetap, isi card mengikuti program aktif.
+2. Hero general di semua kondisi — mengajak pakai Qita tanpa menyebut reward.
+3. **Hanya section program reward yang berubah** — tanpa card (tidak ada program) hingga 4 card (semua program aktif).
+4. Referrer membaca di halaman referral: reward (referrer & referee), periode selesai, kuota, dan **tipe user** — yaitu tipe teman mana yang eligible untuk program di card tersebut (contoh: "Teman yang belum punya rekening BRI" untuk program NTB).
+5. Satu program = satu tipe teman = satu card. Tidak ada multi-reward dalam satu card.
 
 ---
 
@@ -51,9 +78,6 @@ Satu program hanya menargetkan **satu tipe teman**:
 3. Program berganti-ganti sepanjang waktu — desain statis akan menampilkan informasi basi.
 4. User perlu paham perbedaan **"kode masih bisa dipakai"** vs **"ada reward"** — tanpa merasa fitur mati.
 5. Program yang tidak berjalan **tidak boleh** ditampilkan sebagai card kosong atau gray-out.
-6. **Reward hanya berdasarkan program yang dibuat di Procash** — jika tidak ada program aktif (periode selesai atau kuota habis), referrer dan referee **tidak mendapat reward**.
-7. **Pilihan misi di Procash saat ini hanya setoran** — misi setoran sesuai untuk NTB, tetapi **tidak sesuai untuk ETB** karena ETB sudah memiliki rekening BRI.
-8. **ETB saat ini tanpa misi** (akan dikembangkan di sisi Procash) — jika ETB berhasil onboarding ke Qita, referral dianggap berhasil dan referrer mendapat reward tanpa syarat setoran.
 
 ---
 
